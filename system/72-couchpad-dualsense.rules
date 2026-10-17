@@ -1,0 +1,6 @@
+# couchpad: give the logged-in user access to the DualSense / DualSense Edge
+# touchpad and motion-sensor evdev nodes (the gamepad node already has it).
+SUBSYSTEM=="input", KERNEL=="event*", KERNELS=="*054C:0CE6*", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="event*", KERNELS=="*054C:0DF2*", TAG+="uaccess"
+# couchpad self-tests: virtual devices whose name starts with "couchpad-test".
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="couchpad-test*", TAG+="uaccess"

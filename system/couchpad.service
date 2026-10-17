@@ -1,0 +1,15 @@
+[Unit]
+Description=couchpad - DualSense couch gaming helper
+Documentation=https://github.com/shamilmusaev/couchpad
+After=dbus.socket
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=%h/couchpad
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m couchpad
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Couchpad Overlay
+Comment=Quick-launch wheel and on-screen messages of Couchpad
+Icon=couchpad
+Exec=false
+NoDisplay=true
+Terminal=false

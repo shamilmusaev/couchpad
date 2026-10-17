@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Couchpad
+GenericName=DualSense Control Center
+GenericName[ru]=Панель DualSense
+Comment=DualSense as a couch remote for your PC: gestures, touchpad mouse, lightbar
+Comment[ru]=DualSense как пульт для ПК с дивана: жесты, мышь с тачпада, подсветка
+Icon=couchpad
+Exec=couchpad app
+Terminal=false
+Categories=Settings;HardwareSettings;Game;
+Keywords=dualsense;gamepad;controller;ps5;lightbar;couch;геймпад;подсветка;
+StartupWMClass=couchpad
+SingleMainWindow=true

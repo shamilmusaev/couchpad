@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="#1d1c20"/>
+  <rect x="8.5" y="8.5" width="239" height="239" rx="57.5" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+  <!-- controller silhouette -->
+  <path d="M84 80 h88 c19 0 32 11 36 30 l13 55 c4 19 -6 33 -22 33 c-11 0 -17 -7 -23 -17 l-11 -18 h-74 l-11 18 c-6 10 -12 17 -23 17 c-16 0 -26 -14 -22 -33 l13 -55 c4 -19 17 -30 36 -30 z"
+        fill="#ff6a1f"/>
+  <!-- d-pad and buttons cut out -->
+  <g fill="#1d1c20">
+    <rect x="70" y="121" width="30" height="10" rx="3"/>
+    <rect x="80" y="111" width="10" height="30" rx="3"/>
+    <circle cx="176" cy="113" r="6.5"/>
+    <circle cx="176" cy="139" r="6.5"/>
+    <circle cx="163" cy="126" r="6.5"/>
+    <circle cx="189" cy="126" r="6.5"/>
+  </g>
+  <rect x="108" y="90" width="40" height="22" rx="7" fill="#1d1c20" fill-opacity="0.35"/>
+</svg>
