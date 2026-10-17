@@ -104,6 +104,15 @@ Tests: `PYTHONPATH=.:tests python3 -m unittest discover -s tests`. A live
 acceptance suite drives a virtual DualSense created through `/dev/uhid`:
 `COUCHPAD_LIVE=1 PYTHONPATH=.:tests python3 -m unittest tests.test_live`.
 
+## Releasing
+
+```sh
+# bump __version__ in couchpad/__init__.py and CHANGELOG.md, commit, then:
+scripts/build-release.sh                       # dist/couchpad-<version>.tar.gz + .sha256
+git tag -a v<version> -m "Couchpad <version>" && git push origin v<version>
+gh release create v<version> dist/couchpad-<version>.tar.gz* --notes-file CHANGELOG.md
+```
+
 ## Credits
 
 - HD haptics over Bluetooth follow the protocol worked out by
