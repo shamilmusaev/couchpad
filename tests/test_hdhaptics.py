@@ -101,7 +101,8 @@ class Streaming(unittest.TestCase):
         def writer(r):
             with self.lock:
                 self.reports.append((time.monotonic(), r))
-        self.h = hd.HDHaptics("/nonexistent", writer=writer)
+        # keepalive 0: bursts end right after their tail, so they're easy to count
+        self.h = hd.HDHaptics("/nonexistent", writer=writer, keepalive=0)
         self.addCleanup(self.h.close)
 
     def wait_idle(self, timeout=2):
@@ -199,10 +200,40 @@ class Streaming(unittest.TestCase):
         self.h.strength = 0
         self.assertFalse(self.h.play("tick"))
 
+    def test_keepalive_keeps_channel_warm(self):
+        """After a click the stream keeps running silence, and the next click
+        plays without a lead-in (the controller doesn't re-ramp)."""
+        reports = []
+        h = hd.HDHaptics("/x", writer=reports.append, keepalive=0.6)
+        self.addCleanup(h.close)
+        h.play("step")
+        time.sleep(0.35)
+        n_before = len(reports)
+        self.assertTrue(h.streaming)
+        h.play("step")
+        time.sleep(0.12)
+        arms = [r for r in reports if r[0] == 0x31]
+        self.assertEqual(len(arms), 1, "no re-arm while warm")
+        later = [r for r in reports[n_before:] if r[0] == 0x32]
+        first_signal = next(i for i, r in enumerate(later) if any(r[13:77]))
+        self.assertLessEqual(first_signal, 1, "second click starts at once")
+        time.sleep(0.9)
+        self.assertFalse(h.streaming, "stops after the keepalive")
+
+    def test_cold_start_has_lead_in(self):
+        reports = []
+        h = hd.HDHaptics("/x", writer=reports.append, keepalive=0)
+        self.addCleanup(h.close)
+        h.play("step")
+        time.sleep(0.3)
+        hd_reports = [r for r in reports if r[0] == 0x32]
+        first_signal = next(i for i, r in enumerate(hd_reports) if any(r[13:77]))
+        self.assertEqual(first_signal, hd.PREROLL)
+
     def test_write_error_disables_and_falls_back(self):
         def boom(r):
             raise OSError("gone")
-        h = hd.HDHaptics("/x", writer=boom)
+        h = hd.HDHaptics("/x", writer=boom, keepalive=0)
         self.addCleanup(h.close)
         self.assertTrue(h.play("tick"))
         time.sleep(0.2)

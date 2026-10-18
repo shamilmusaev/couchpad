@@ -27,6 +27,8 @@ EVDEV_BUTTONS = {
 # Share + button -> action name (on press) comes from actions.chords(cfg.chords).
 # ○ / △ are short/long presses and R1 is the wheel; those are handled here.
 
+DPAD = ("up", "down", "left", "right")
+
 # Mouse mode: button -> ("mouse", name) | ("key", code) | ("action", name)
 MOUSE_MODE_MAP = {
     "cross": ("mouse", "left"),
@@ -80,6 +82,7 @@ class Controller:
         self.last_tick = None
         self.press_t = {}
         self.wheel = None             # {"n": items, "sel": index | None}
+        self.dpad_free = (-1e9, None)  # (time, direction) the d-pad was last let go
 
     # Share pressed this soon after ○/△ still counts as "Share + ○/△".
     LATE_SHARE = 0.15
@@ -100,9 +103,12 @@ class Controller:
             self._share(pressed, t)
             return
 
+        if name in DPAD and not pressed and not any(d in self.held for d in DPAD):
+            self.dpad_free = (t, name)
+
         if self.wheel and name not in self.consumed:
             # The wheel owns the pad while it is open (Share may still be held).
-            if pressed:
+            if pressed and not self._dpad_echo(name, t):
                 self._wheel_button(name)
             return
 
@@ -119,7 +125,7 @@ class Controller:
             return
 
         if self.alt_tab:
-            if pressed:
+            if pressed and not self._dpad_echo(name, t):
                 self._alt_tab_button(name, t)
             return
 
@@ -264,6 +270,7 @@ class Controller:
 
     def _alt_tab_step(self, reverse, t):
         self.alt_tab_t = t
+        self.actions.switcher_step(reverse)
         self.actions.feedback("step", -0.8 if reverse else 0.8)
         if reverse:
             self.out.key(e.KEY_LEFTSHIFT, True)
@@ -286,6 +293,19 @@ class Controller:
         self.alt_tab = False
         self.stick_latch = 0
         self.actions.after_switch(cancelled=cancel)
+
+    # The DualSense d-pad is a rocker: pressing → often reports →↓ for a few
+    # milliseconds, and a quick press can bounce. In menus that step, only a
+    # press from "nothing held" counts.
+    DPAD_BOUNCE = 0.05
+
+    def _dpad_echo(self, name, t):
+        if name not in DPAD:
+            return False
+        if any(d in self.held for d in DPAD if d != name):
+            return True                         # diagonal while rocking
+        last_t, last = self.dpad_free
+        return name == last and t - last_t < self.DPAD_BOUNCE   # contact bounce
 
     def _alt_tab_button(self, name, t):
         if name in ("right", "down", "r1"):

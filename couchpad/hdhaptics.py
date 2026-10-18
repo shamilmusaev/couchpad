@@ -26,8 +26,15 @@ REPORT_SIZE = 142                  # report id + 141 data bytes (CRC in the last
 RATE = 3000
 FRAMES = 32                        # stereo frames per report
 PERIOD = FRAMES / RATE             # 10.67 ms
-PREROLL = 2                        # silent reports before a click (no crackle)
-TAIL = 4                           # silent reports after the last sample
+# The controller gates its haptics channel when the stream stops and fades
+# it back in when it restarts: a 16 ms click right after a pause got lost
+# in that ramp (only every second or third step of the window switcher was
+# felt). So a cold start leads with ~64 ms of silence, and after the last
+# click the stream keeps running silence for KEEPALIVE seconds, which keeps
+# the channel warm for the next step.
+PREROLL = 6                        # silent reports before a click after a pause
+TAIL = 4                           # minimum silent reports after the last sample
+KEEPALIVE = 3.0                    # s of silence streamed after the last click
 
 
 # Output report 0x31 (Bluetooth, 78 bytes): id, sequence << 4, tag 0x10, then
@@ -141,8 +148,10 @@ class HDHaptics:
     """Streams mixed waveforms to one controller from a background thread.
     Silent when idle: reports are only sent while something plays."""
 
-    def __init__(self, node, strength=1.0, writer=None):
+    def __init__(self, node, strength=1.0, writer=None, keepalive=KEEPALIVE):
         self.node = node
+        self.keepalive = max(TAIL, int(keepalive / PERIOD))   # in reports
+        self.streaming = False              # channel warm: no lead-in needed
         self.strength = max(0.0, min(strength, 2.0))
         self.lib = library()
         self.left, self.right = [], []      # pending mix (floats)
@@ -164,7 +173,7 @@ class HDHaptics:
         gl, gr = pan_gains(pan)
         k = self.strength
         with self.cv:
-            if not self.left:
+            if not self.left and not self.streaming:
                 self.preroll = PREROLL * FRAMES
             start = self.preroll                # never inside the lead-in silence
             need = start + len(wave)
@@ -215,17 +224,20 @@ class HDHaptics:
                 continue
             nxt = time.monotonic()
             silent = 0
-            while silent < TAIL:
+            self.streaming = True
+            while silent < self.keepalive:
                 with self.cv:
                     if not self.alive:
                         return
                     l, self.left = self.left[:FRAMES], self.left[FRAMES:]
                     r, self.right = self.right[:FRAMES], self.right[FRAMES:]
                     self.preroll = max(0, self.preroll - FRAMES)
-                if any(l) or any(r) or self.left:
-                    silent = 0
-                else:
-                    silent += 1
+                    if any(l) or any(r) or self.left:
+                        silent = 0
+                    else:
+                        silent += 1
+                    if silent >= self.keepalive:
+                        self.streaming = False      # a new click gets a lead-in
                 l += [0.0] * (FRAMES - len(l))
                 r += [0.0] * (FRAMES - len(r))
                 frames = bytes(b for pair in zip(l, r) for b in (to_int8(pair[0]), to_int8(pair[1])))
@@ -236,6 +248,7 @@ class HDHaptics:
                     self.failed = True
                     with self.cv:
                         self.left, self.right = [], []
+                        self.streaming = False
                     break
                 self.counter = (self.counter + 1) & 0xFF
                 nxt += PERIOD

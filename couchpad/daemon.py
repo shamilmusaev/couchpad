@@ -567,6 +567,9 @@ class ControllerActions:
         log.info("window switcher opened [pad %s]", self.uniq)
         self.s.d.record("switcher_open")
 
+    def switcher_step(self, reverse):
+        self.s.d.record("switcher_back" if reverse else "switcher_next")
+
     def after_switch(self, cancelled):
         log.info("window switcher %s [pad %s]", "cancelled" if cancelled else "confirmed",
                  self.uniq)

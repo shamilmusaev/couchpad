@@ -103,7 +103,7 @@ class ShareCircle(unittest.TestCase):
         press(ctl, "cross", 1.2)
         self.assertFalse(ctl.alt_tab)
         self.assertNotIn(e.KEY_LEFTALT, out.keys)
-        self.assertEqual(acts.switches, ["open", False])
+        self.assertEqual(acts.switches, ["open", "next", "next", "back", False])
         self.assertEqual(out.taps(e.KEY_ESC), 0)
 
     def test_shift_is_released_after_reverse_step(self):
@@ -497,6 +497,53 @@ class MouseMode(unittest.TestCase):
         self.assertEqual(out.keys, set())
         self.assertEqual(out.buttons, set())
         self.assertFalse(ctl.alt_tab)
+
+
+class DpadRocker(unittest.TestCase):
+    """A rocker d-pad reports diagonals and bounces; menus must step once."""
+
+    def open_switcher(self):
+        ctl, out, acts, mode = make_controller()
+        ctl.button("share", True, 0)
+        press(ctl, "circle", 0.1)
+        ctl.button("share", False, 0.2)
+        return ctl, out, acts
+
+    def test_diagonal_while_pressing_right_is_one_step(self):
+        ctl, out, acts = self.open_switcher()
+        ctl.button("right", True, 0.50)
+        ctl.button("down", True, 0.505)       # rocker tips into →↓
+        ctl.button("down", False, 0.51)
+        ctl.button("right", False, 0.60)
+        self.assertEqual(acts.switches, ["open", "next"])
+        self.assertEqual(out.taps(e.KEY_TAB), 2, "open + one step")
+
+    def test_bounce_is_one_step(self):
+        ctl, out, acts = self.open_switcher()
+        ctl.button("right", True, 0.50)
+        ctl.button("right", False, 0.52)
+        ctl.button("right", True, 0.53)       # contact bounce
+        ctl.button("right", False, 0.60)
+        self.assertEqual(acts.switches, ["open", "next"])
+
+    def test_separate_presses_still_step(self):
+        ctl, out, acts = self.open_switcher()
+        for t in (0.5, 0.8, 1.1):
+            ctl.button("right", True, t)
+            ctl.button("right", False, t + 0.08)
+        ctl.button("left", True, 1.4)
+        ctl.button("left", False, 1.45)
+        self.assertEqual(acts.switches, ["open", "next", "next", "next", "back"])
+
+    def test_wheel_diagonal_is_one_detent(self):
+        ctl, out, acts, mode = make_controller()
+        ctl.button("share", True, 0)
+        ctl.button("r1", True, 0.05)
+        ctl.button("right", True, 0.3)
+        ctl.button("down", True, 0.305)
+        ctl.button("down", False, 0.31)
+        ctl.button("right", False, 0.4)
+        self.assertEqual([e for e, i in acts.wheel_events if e == "select"], ["select"])
 
 
 if __name__ == "__main__":

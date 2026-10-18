@@ -88,6 +88,9 @@ class FakeActions:
     def switcher_opened(self):
         self.switches.append("open")
 
+    def switcher_step(self, reverse):
+        self.switches.append("back" if reverse else "next")
+
     def after_switch(self, cancelled):
         self.switches.append(cancelled)
 
