@@ -87,6 +87,33 @@ PageBase {
             Layout.alignment: Qt.AlignTop
             spacing: Theme.gap
 
+            Rectangle {         // mouse-mode colour is what the pad shows right now
+                visible: backend.mouse && !!s.light_mouse_color && lights.mode !== "steam"
+                Layout.fillWidth: true
+                implicitHeight: warnRow.implicitHeight + 28
+                radius: Theme.radius
+                color: Theme.accentSoft
+                border.color: Theme.alpha(Theme.accent, 0.45)
+                RowLayout {
+                    id: warnRow
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 12
+                    Icon { name: "ph:info"; size: 20; mono: true; monoColor: Theme.accent }
+                    Text {
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        text: L.t("Сейчас включён режим мыши, и полоса горит цветом режима мыши. Выбранный цвет вернётся, когда мышь выключится.")
+                        color: Theme.text
+                        font.pixelSize: 14
+                    }
+                    CButton {
+                        text: L.t("Не менять цвет в режиме мыши")
+                        onClicked: backend.set("light_mouse_color", "")
+                    }
+                }
+            }
+
             Card {
                 Layout.fillWidth: true
                 ColumnLayout {
@@ -130,7 +157,7 @@ PageBase {
                     spacing: 26
                     ColorPicker {
                         value: s.light_color || "#1e6bff"
-                        onPicked: (c) => backend.set("light_color", Theme.hex(c))
+                        onPicked: (c) => { backend.set("light_color", Theme.hex(c)); backend.previewLight(Theme.hex(c)) }
                     }
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -138,7 +165,7 @@ PageBase {
                         SectionTitle { text: L.t("Цвет"); subtitle: L.t("Крутите кольцо мышью или ←/→ на геймпаде") }
                         Swatches {
                             current: s.light_color || ""
-                            onPicked: (c) => backend.set("light_color", c)
+                            onPicked: (c) => { backend.set("light_color", c); backend.previewLight(c) }
                         }
                     }
                 }

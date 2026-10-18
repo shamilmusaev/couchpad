@@ -31,6 +31,7 @@ class Config:
     tap_move: float = 70.0           # touchpad units (~2 mm)
 
     # --- sticks in mouse mode ---
+    stick_mouse: str = "off"         # both (left = cursor, right = scroll) | scroll | off
     stick_deadzone: float = 0.12
     stick_pointer_speed: float = 1400.0  # px/s at full deflection
     stick_scroll_speed: float = 1800.0   # hi-res units/s (120 = 1 notch)
@@ -53,7 +54,7 @@ class Config:
     light_color: str = "#1e6bff"
     light_brightness: float = 0.8    # 0..1
     light_speed: float = 1.0         # breathe / rainbow speed
-    light_mouse_color: str = "#ffffff"   # lightbar while mouse mode is on ("" = keep)
+    light_mouse_color: str = ""   # lightbar while mouse mode is on ("" = keep)
     light_flash: bool = True         # short flashes on actions
     player_leds: str = "auto"        # auto | off | battery | mouse
     mic_led: str = "auto"            # auto | mouse
@@ -103,6 +104,7 @@ CHOICES = {
     "player_leds": ("auto", "off", "battery", "mouse"),
     "mic_led": ("auto", "mouse"),
     "language": ("auto", "ru", "en"),
+    "stick_mouse": ("both", "scroll", "off"),
 }
 COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
@@ -131,7 +133,8 @@ SECTIONS = [
      ["tap_max", "double_tap_window", "long_press", "alt_tab_timeout"]),
     ("Touchpad", ["grab_touchpad", "pointer_speed", "pointer_accel", "pointer_smoothing",
                   "natural_scroll", "scroll_speed", "tap_to_click", "tap_time", "tap_move"]),
-    ("Sticks in mouse mode", ["stick_deadzone", "stick_pointer_speed", "stick_scroll_speed"]),
+    ("Sticks in mouse mode", ["stick_mouse", "stick_deadzone", "stick_pointer_speed",
+                              "stick_scroll_speed"]),
     ("Feedback", ["rumble", "haptic_strength", "haptics"]),
     ("Messages", ["notifications", "osd", "hold_osd"]),
     ("Behaviour", ["mouse_on_after_minimize", "keyboard", "idle_off", "tray", "language"]),

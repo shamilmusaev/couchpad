@@ -131,10 +131,11 @@ EOF
 chmod +x "$BIN"
 install -m644 "$SRC/couchpad/data/couchpad.svg" "$ICON"
 install -m644 "$SRC/system/couchpad.desktop" "$APPS/couchpad.desktop"
-sed -i "s|^Exec=.*|Exec=$BIN app|" "$APPS/couchpad.desktop"
+sed -i -e "s|^Exec=.*|Exec=$BIN app|" -e "s|^Icon=.*|Icon=$ICON|" "$APPS/couchpad.desktop"
 install -m644 "$SRC/system/couchpad-wheel.desktop" "$APPS/couchpad-wheel.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database "$APPS" 2>/dev/null || true
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q "$DATA/icons/hicolor" 2>/dev/null || true
+command -v kbuildsycoca6 >/dev/null && kbuildsycoca6 >/dev/null 2>&1 || true   # Plasma menu / task manager
 
 PYTHONPATH="$DEST" python3 -m couchpad --write-config >/dev/null
 

@@ -331,6 +331,13 @@ EN = {
     "Яркость": "Brightness",
     "Яркость подсветки": "Light bar brightness",
     "вперёд": "forward",
+    "Сейчас включён режим мыши, и полоса горит цветом режима мыши. Выбранный цвет вернётся, когда мышь выключится.":
+        "Mouse mode is on, so the bar shows the mouse-mode colour. Your colour comes back when the mouse is off.",
+    "Не менять цвет в режиме мыши": "Keep my colour in mouse mode",
+    "Что делают стики, пока включён режим мыши": "What the sticks do while mouse mode is on",
+    "Правый — прокрутка": "Right stick scrolls",
+    "Левый — курсор, правый — прокрутка": "Left moves, right scrolls",
+    "Тачпад ведёт курсор, ✕ или R2 — клик, ○ или R1 — правый клик.": "Touchpad moves the cursor, ✕ or R2 clicks, ○ or R1 right-clicks.",
     "выключена": "off",
     "дыхание": "breathe",
     "закреплено": "reserved",

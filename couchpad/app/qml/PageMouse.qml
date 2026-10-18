@@ -52,20 +52,33 @@ PageBase {
         ColumnLayout {
             width: parent.width
             spacing: 6
-            SectionTitle { text: L.t("Стики"); subtitle: L.t("Левый стик — курсор, правый — прокрутка") }
+            SectionTitle { text: L.t("Стики"); subtitle: L.t("Что делают стики, пока включён режим мыши") }
+            Segmented {
+                Layout.fillWidth: true
+                Layout.bottomMargin: 6
+                stretch: true
+                model: [{value: "off", label: L.t("Ничего")},
+                        {value: "scroll", label: L.t("Правый — прокрутка")},
+                        {value: "both", label: L.t("Левый — курсор, правый — прокрутка")}]
+                current: s.stick_mouse
+                onPicked: (v) => backend.set("stick_mouse", v)
+            }
             SettingRow {
+                visible: s.stick_mouse === "both"
                 title: L.t("Скорость курсора стиком"); icon: "ph:game-controller"
                 CSlider { from: 300; to: 3000; stepSize: 50; value: s.stick_pointer_speed
                     format: function (v) { return Math.round(v) + L.t(" px/с") }
                     onMoved: backend.set("stick_pointer_speed", value) }
             }
             SettingRow {
+                visible: s.stick_mouse !== "off"
                 title: L.t("Скорость прокрутки стиком"); icon: "ph:arrows-down-up"
                 CSlider { from: 300; to: 4000; stepSize: 50; value: s.stick_scroll_speed
                     format: function (v) { return "×" + (v / 1800).toFixed(2) }
                     onMoved: backend.set("stick_scroll_speed", value) }
             }
             SettingRow {
+                visible: s.stick_mouse !== "off"
                 title: L.t("Мёртвая зона"); subtitle: L.t("Больше — если курсор ползёт сам"); icon: "ph:crosshair"
                 CSlider { from: 0.04; to: 0.35; stepSize: 0.01; value: s.stick_deadzone
                     format: function (v) { return Math.round(v * 100) + "%" }
@@ -105,7 +118,7 @@ PageBase {
                         {b: "cross", g: "✕", t: L.t("левый клик")}, {b: "circle", g: "○", t: L.t("правый клик")},
                         {b: "square", g: "□", t: L.t("средний клик")}, {b: "triangle", g: "△", t: L.t("клавиатура")},
                         {b: "r2", g: "R2", t: L.t("левый клик")}, {b: "l2", g: "L2", t: L.t("правый клик")},
-                        {b: "l1", g: "L1", t: L.t("назад")}, {b: "r1", g: "R1", t: L.t("вперёд")},
+                        {b: "l1", g: "L1", t: L.t("назад")}, {b: "r1", g: "R1", t: L.t("правый клик")},
                         {b: "up", g: "↕↔", t: L.t("стрелки")}, {b: "options", g: "Options", t: L.t("меню KDE")},
                         {b: "l3", g: "L3", t: "Enter"}, {b: "r3", g: "R3", t: "Esc"}
                     ]

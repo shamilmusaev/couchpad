@@ -11,7 +11,7 @@ Item {
     property bool lit: true
     property var input: ({})            // gamepad.state
     property bool showInput: false
-    property bool tilt: showInput
+    property bool tilt: false           // lean with the accelerometer (off by request)
     readonly property var b: input && input.buttons ? input.buttons : ({})
     implicitWidth: 600
     implicitHeight: 400

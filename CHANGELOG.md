@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1
+
+- Mouse mode: R2 = left click, R1 = right click.
+- Sticks no longer drive the mouse by default; choose "nothing", "right stick
+  scrolls" or "left moves, right scrolls" on the Mouse page.
+- Light bar: picking a colour shows it on the pad right away, mouse mode keeps
+  your colour unless you pick a separate one, and a hint explains when it doesn't.
+- The controller picture no longer tilts with the accelerometer.
+- The app icon shows in the task manager (absolute icon path, Plasma cache refresh).
+
 ## 1.0.0
 
 First public release.
@@ -9,7 +19,7 @@ First public release.
   monitor / TV switching.
 - Remappable Share + button shortcuts (20+ actions).
 - Control center (Qt Quick) with gamepad navigation, settings search, tray
-  icon, live DualSense picture with accelerometer tilt, English and Russian.
+  icon, live DualSense picture, English and Russian.
 - Light bar modes (solid, breathe, rainbow, battery), action flashes,
   mouse-mode colour, player and mic LEDs.
 - On-screen toasts above fullscreen games (wlr-layer-shell overlay).

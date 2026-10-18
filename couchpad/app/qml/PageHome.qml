@@ -145,7 +145,7 @@ PageBase {
                     Text {
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
-                        text: backend.mouse ? L.t("Тачпад ведёт курсор, ✕ — клик, ○ — правый клик, левый стик — курсор, правый — прокрутка.")
+                        text: backend.mouse ? L.t("Тачпад ведёт курсор, ✕ или R2 — клик, ○ или R1 — правый клик.")
                                             : L.t("Геймпад управляет игрой. Включите, чтобы пользоваться рабочим столом с дивана.")
                         color: Qt.rgba(1, 1, 1, 0.8)
                         font.pixelSize: 14

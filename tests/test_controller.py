@@ -391,8 +391,42 @@ class MouseMode(unittest.TestCase):
         ctl.button("cross", False, 0.5)    # release after mode off: no output
         self.assertEqual(out.clicks(), [("left", True), ("left", False)])
 
-    def test_left_stick_moves_pointer(self):
+    def test_sticks_off_by_default(self):
         ctl, out, acts, mode = make_controller()
+        mode.mouse = True
+        ctl.axis("lx", 1.0, 0)
+        ctl.axis("ry", -1.0, 0)
+        self.assertFalse(ctl.needs_fast_tick())
+        t = 0.0
+        while t < 0.5:
+            ctl.tick(t)
+            t += 0.01
+        self.assertEqual((out.dx, out.dy, out.vs, out.hs), (0, 0, 0, 0))
+
+    def test_scroll_only(self):
+        ctl, out, acts, mode = make_controller(stick_mouse="scroll")
+        mode.mouse = True
+        ctl.axis("lx", 1.0, 0)
+        ctl.axis("ry", -1.0, 0)
+        t = 0.0
+        while t < 0.5:
+            ctl.tick(t)
+            t += 0.01
+        self.assertEqual((out.dx, out.dy), (0, 0))
+        self.assertGreater(out.vs, 0)
+
+    def test_r2_left_r1_right_click(self):
+        ctl, out, acts, mode = make_controller()
+        mode.mouse = True
+        ctl.button("r2", True, 0)
+        ctl.button("r2", False, 0.1)
+        ctl.button("r1", True, 0.2)
+        ctl.button("r1", False, 0.3)
+        self.assertEqual(out.clicks(), [("left", True), ("left", False),
+                                        ("right", True), ("right", False)])
+
+    def test_left_stick_moves_pointer(self):
+        ctl, out, acts, mode = make_controller(stick_mouse="both")
         mode.mouse = True
         ctl.axis("lx", 1.0, 0)
         self.assertTrue(ctl.needs_fast_tick())
@@ -411,7 +445,7 @@ class MouseMode(unittest.TestCase):
         self.assertEqual(out.log, [])
 
     def test_stick_small_deflection_is_slow(self):
-        ctl, out, acts, mode = make_controller()
+        ctl, out, acts, mode = make_controller(stick_mouse="both")
         mode.mouse = True
         ctl.axis("lx", 0.3, 0)
         hold_until(ctl, 0, 1.0, step=0.008)
@@ -419,7 +453,7 @@ class MouseMode(unittest.TestCase):
         self.assertLess(out.dx, 150)
 
     def test_right_stick_scrolls(self):
-        ctl, out, acts, mode = make_controller()
+        ctl, out, acts, mode = make_controller(stick_mouse="both")
         mode.mouse = True
         ctl.axis("ry", -1.0, 0)       # push up
         hold_until(ctl, 0, 0.5, step=0.008)

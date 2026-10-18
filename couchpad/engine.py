@@ -36,7 +36,7 @@ MOUSE_MODE_MAP = {
     "square": ("mouse", "middle"),
     "triangle": ("action", "keyboard"),
     "l1": ("key", e.KEY_BACK),
-    "r1": ("key", e.KEY_FORWARD),
+    "r1": ("mouse", "right"),
     "up": ("key", e.KEY_UP),
     "down": ("key", e.KEY_DOWN),
     "left": ("key", e.KEY_LEFT),
@@ -422,8 +422,18 @@ class Controller:
         if self.mode.mouse and not self.alt_tab and not self.wheel:
             dz = self.cfg.stick_deadzone
             return any(math.hypot(self.axes[a], self.axes[b]) > dz
-                       for a, b in (("lx", "ly"), ("rx", "ry")))
+                       for (a, b), _idx, _speed in self._stick_roles())
         return False
+
+    def _stick_roles(self):
+        """Which sticks drive the mouse: cfg.stick_mouse = both | scroll | off."""
+        cfg = self.cfg
+        roles = []
+        if cfg.stick_mouse == "both":
+            roles.append((("lx", "ly"), 0, cfg.stick_pointer_speed))
+        if cfg.stick_mouse in ("both", "scroll"):
+            roles.append((("rx", "ry"), 2, cfg.stick_scroll_speed))
+        return roles
 
     def tick(self, t):
         dt = 0.0 if self.last_tick is None else min(max(t - self.last_tick, 0.0), 0.05)
@@ -460,8 +470,7 @@ class Controller:
     def _sticks(self, dt):
         cfg = self.cfg
         moved = False
-        for (ax, ay), idx, speed in ((("lx", "ly"), 0, cfg.stick_pointer_speed),
-                                     (("rx", "ry"), 2, cfg.stick_scroll_speed)):
+        for (ax, ay), idx, speed in self._stick_roles():
             x, y = self.axes[ax], self.axes[ay]
             m = math.hypot(x, y)
             if m <= cfg.stick_deadzone:

@@ -38,14 +38,15 @@ clicks and rumbles along.
 - **Control center** with full gamepad navigation (D-pad, ✕, ○, L1/R1), a
   settings search and a tray icon showing battery and mouse mode.
 - **Live DualSense**: the picture mirrors your real pad: buttons, sticks,
-  triggers, touches and even tilt from the accelerometer.
+  triggers and touches.
 - **Light bar**: solid colour, breathing, rainbow, battery colour, flashes on
   actions, a different colour in mouse mode; player LEDs can show battery.
 - **Messages above games**: toasts and the hold ring are layer-shell overlays,
   so they show over fullscreen games without stealing focus.
 - **Quick-launch wheel** with any apps, links or commands (up to 8).
 - **Touchpad mouse done properly**: smoothing, acceleration, natural scroll,
-  tap to click (1/2/3 fingers), click-drag, sticks as mouse and scroll.
+  tap to click (1/2/3 fingers), click-drag, R2 / R1 as left / right click; sticks
+  can move and scroll too, or stay out of it (the default).
 - **Steam stays out of the way**: an optional neutral desktop layout stops
   Steam turning Share into Esc on the desktop; game layouts aren't touched.
 - **Idle power-off**, low battery warnings, config hot reload, English and Russian.
@@ -159,7 +160,7 @@ Share, мышь с тачпада, живая подсветка, колесо �
 - настроить скорость и сглаживание мыши и стиков;
 - выбрать приложения для колеса;
 - выбрать тип отклика: вибрация или HD-хаптика;
-- проверить геймпад вживую, включая наклон;
+- проверить геймпад вживую;
 - управлять службой, значком в трее, языком (русский или English) и выключением геймпада без дела.
 
 ![Подсветка](docs/lights-ru.png)
