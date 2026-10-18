@@ -39,7 +39,7 @@ class TrayIcon(unittest.TestCase):
         b = tray_icon(75, False, False, True).pixmap(64, 64).toImage()
         self.assertNotEqual(a, b)
         # the white bolt sits across the (orange) controller only while charging
-        self.assertGreater(a.pixelColor(33, 20).blue(), 200)
+        self.assertGreater(a.pixelColor(31, 24).blue(), 200)
 
 
 if __name__ == "__main__":

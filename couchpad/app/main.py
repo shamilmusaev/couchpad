@@ -239,15 +239,16 @@ class App(QObject):
 
 
 def tray_icon(level, charging, mouse, connected):
-    """Controller glyph filling the tray slot, a battery bar under it, a bolt
-    badge while charging and a dot for mouse mode."""
+    """Controller glyph centred in the tray slot like the other tray icons,
+    a battery pill between its grips, a bolt while charging and a dot for
+    mouse mode."""
     size = 64
     img = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
     img.fill(Qt.GlobalColor.transparent)
     p = QPainter(img)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    glyph_h = 44 if connected and level is not None else 52
-    QIcon(TRAY_GLYPH).paint(p, 0, (52 - glyph_h) // 2 if glyph_h == 52 else 0, size, glyph_h)
+    top = 11                                            # 64 x 42 glyph, centred
+    QIcon(TRAY_GLYPH).paint(p, 0, top, size, 42)
     if not connected:
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
         p.fillRect(img.rect(), QColor(0, 0, 0, 110))          # faded when idle
@@ -255,22 +256,21 @@ def tray_icon(level, charging, mouse, connected):
     elif level is not None:
         col = QColor("#2ecc71") if charging or level > 30 else \
             QColor("#f5b400") if level > 15 else QColor("#ff4d5e")
-        w = 60
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(10, 12, 18, 200))
-        p.drawRoundedRect(2, 49, w, 14, 7, 7)
+        p.setPen(Qt.PenStyle.NoPen)                     # pill in the gap between the grips
+        p.setBrush(QColor(10, 12, 18, 230))
+        p.drawRoundedRect(17, 44, 30, 12, 6, 6)
         p.setBrush(col)
-        p.drawRoundedRect(4, 51, max(6, int((w - 4) * level / 100)), 10, 5, 5)
-        if charging:                          # big bolt across the controller
+        p.drawRoundedRect(19, 46, max(6, int(26 * level / 100)), 8, 4, 4)
+        if charging:                          # bolt across the controller
             p.setPen(QPen(QColor(10, 12, 18), 3, Qt.PenStyle.SolidLine,
                           Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
             p.setBrush(QColor("#ffffff"))
             p.drawPolygon(QPolygonF([QPointF(x, y) for x, y in
-                                     ((36, 2), (20, 26), (31, 26), (27, 46), (45, 18), (34, 18), (40, 2))]))
+                                     ((35, 8), (22, 28), (31, 28), (28, 44), (43, 22), (34, 22), (39, 8))]))
     if connected and mouse:
         p.setPen(QPen(QColor(10, 12, 18), 2.5))
         p.setBrush(QColor("#ffffff"))
-        p.drawEllipse(QPointF(55, 9), 8, 8)
+        p.drawEllipse(QPointF(56, 12), 7, 7)
     p.end()
     return QIcon(QPixmap.fromImage(img))
 
