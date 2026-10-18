@@ -4,8 +4,9 @@ import os
 import signal
 import sys
 
-from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, QUrl, Slot
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QImage, QKeyEvent, QPainter, QPixmap
+from PySide6.QtCore import QEvent, QObject, QPointF, QSize, Qt, QTimer, QUrl, Slot
+from PySide6.QtGui import (QColor, QFont, QFontDatabase, QIcon, QImage, QKeyEvent, QPainter, QPen,
+                           QActionGroup, QPixmap, QPolygonF)
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickImageProvider
@@ -23,6 +24,7 @@ ICON = os.path.join(os.path.dirname(HERE), "data", "couchpad.svg")
 FONTS = os.path.join(os.path.dirname(HERE), "data", "fonts")
 ICONS = os.path.join(os.path.dirname(HERE), "data", "icons")
 SOCKET = f"couchpad-app-{os.getuid()}"
+IDLE_CHOICES = (0, 10, 15, 30, 60)       # tray "auto power off" minutes
 
 
 class IconProvider(QQuickImageProvider):
@@ -97,6 +99,7 @@ class App(QObject):
         self.server.newConnection.connect(self._on_connection)
         self.backend.statusChanged.connect(self._update_tray)
         self.backend.settingsChanged.connect(self._sync_tray)
+        self.backend.settingsChanged.connect(self._update_tray)     # auto-off ticks
         self.backend.langChanged.connect(self._retranslate_tray)
         self._sync_tray()
         if not tray_only or self.tray is None:
@@ -161,6 +164,17 @@ class App(QObject):
                                             _("Мышь с тачпада"))
             self.act_mouse.setCheckable(True)
             self.act_mouse.triggered.connect(lambda on: self.backend.setMouse(on))
+            self.act_off = menu.addAction(QIcon.fromTheme("system-shutdown"), _("Выключить геймпад"))
+            self.act_off.triggered.connect(lambda: self.backend.runAction("power_off"))
+            self.idle_menu = menu.addMenu(QIcon.fromTheme("chronometer"), _("Автовыключение"))
+            group = QActionGroup(self.idle_menu)
+            self.idle_acts = {}
+            for minutes in IDLE_CHOICES:
+                act = self.idle_menu.addAction("")
+                act.setCheckable(True)
+                group.addAction(act)
+                act.triggered.connect(lambda _on, m=minutes: self.backend.set("idle_off", m))
+                self.idle_acts[minutes] = act
             menu.addSeparator()
             self.act_quit = menu.addAction(QIcon.fromTheme("application-exit"), _("Выход"))
             self.act_quit.triggered.connect(self.quit)
@@ -179,6 +193,8 @@ class App(QObject):
         if self.tray is not None:
             self.act_open.setText(_("Открыть Couchpad"))
             self.act_mouse.setText(_("Мышь с тачпада"))
+            self.act_off.setText(_("Выключить геймпад"))
+            self.idle_menu.setTitle(_("Автовыключение"))
             self.act_quit.setText(_("Выход"))
             self._update_tray()
 
@@ -200,12 +216,25 @@ class App(QObject):
         else:
             bat = pad.get("battery")
             tip = "DualSense · " + (f"{bat}%" if bat is not None else _("заряд неизвестен"))
+            state = {"Charging": _("заряжается"), "Full": _("заряжен")}.get(pad.get("battery_status"))
+            if bat is not None and state:
+                tip += " · " + state
         self.tray.setToolTip(tip)
         self.tray.setIcon(tray_icon(pad.get("battery") if pad else None,
                                     pad.get("battery_status") == "Charging" if pad else False,
                                     self.backend.mouse, self.backend.daemonRunning and bool(pad)))
         self.act_mouse.setChecked(self.backend.mouse)
         self.act_mouse.setEnabled(self.backend.daemonRunning)
+        self.act_off.setEnabled(self.backend.daemonRunning and bool(pad) and pad.get("bluetooth", False))
+        idle = self.backend.cfg.idle_off
+        for minutes, act in self.idle_acts.items():
+            act.setText(_("никогда") if not minutes else f"{minutes}" + _(" мин"))
+            act.setChecked(abs(idle - minutes) < 0.5)
+        if not any(a.isChecked() for a in self.idle_acts.values()):
+            # a value set in the app (e.g. 25 min): show it as an extra choice
+            self.idle_menu.setTitle(_("Автовыключение") + f" · {idle:g}" + _(" мин"))
+        else:
+            self.idle_menu.setTitle(_("Автовыключение"))
 
 
 def tray_icon(level, charging, mouse, connected):
@@ -222,11 +251,20 @@ def tray_icon(level, charging, mouse, connected):
     elif level is not None:
         col = QColor("#2ecc71") if charging or level > 30 else \
             QColor("#f5b400") if level > 15 else QColor("#ff4d5e")
+        w = 34 if charging else 52                            # room for the badge
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(10, 12, 18, 230))
-        p.drawRoundedRect(6, 50, 52, 12, 6, 6)
+        p.drawRoundedRect(6, 50, w, 12, 6, 6)
         p.setBrush(col)
-        p.drawRoundedRect(8, 52, max(4, int(48 * level / 100)), 8, 4, 4)
+        p.drawRoundedRect(8, 52, max(4, int((w - 4) * level / 100)), 8, 4, 4)
+        if charging:                    # big green bolt badge: must read at 22 px
+            p.setPen(QPen(QColor(10, 12, 18), 3))
+            p.setBrush(col)
+            p.drawEllipse(QPointF(49, 49), 15, 15)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor("#ffffff"))
+            p.drawPolygon(QPolygonF([QPointF(x, y) for x, y in
+                                     ((52, 37), (40, 52), (48, 52), (45, 62), (58, 46), (50, 46), (54, 37))]))
     if connected and mouse:
         p.setPen(QColor(10, 12, 18))
         p.setBrush(QColor("#ff6a1f"))

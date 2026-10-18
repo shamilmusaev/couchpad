@@ -866,6 +866,7 @@ class Daemon:
         self.events = []          # dry-run action log
         self.stopping = False
         self.battery_warned = {}
+        self.charge_state = {}         # uniq -> last battery status seen
         self.light_wake = None
         self.config_mtime = None
 
@@ -956,6 +957,7 @@ class Daemon:
             self.pads.pop(pad.key, None)
         if was_gamepad:
             log.info("gamepad removed")
+            self.charge_state.pop(pad.uniq, None)
             if not self.stopping:
                 self.services.notify("conn", _("DualSense отключён"), "", "ph:game-controller",
                                      "#8a93a6")
@@ -1063,9 +1065,11 @@ class Daemon:
         log.info("config reloaded")
         return True
 
+    BATTERY_POLL = 5          # s: plugging the cable in shows up quickly
+
     async def battery_watch(self):
         while True:
-            await asyncio.sleep(30)
+            await asyncio.sleep(self.BATTERY_POLL)
             now = time.monotonic()
             for pad in list(self.pads.values()):
                 if not pad.gamepad:
@@ -1080,6 +1084,7 @@ class Daemon:
                 if not info:
                     continue
                 cap, status = info
+                self._charge_change(pad.uniq, cap, status)
                 level = 10 if cap <= 10 else 20 if cap <= 20 else None
                 warned = self.battery_warned.get(pad.uniq)
                 if status != "Discharging" or level is None:
@@ -1089,6 +1094,22 @@ class Daemon:
                     self.services.notify("bat", _("Геймпад садится · {cap}%").format(cap=cap),
                                          _("Поставьте его на зарядку"), "ph:battery-warning",
                                          "#ff4545", cap)
+
+    def _charge_change(self, uniq, cap, status):
+        """Toast when the cable goes in and when the pad is full (not for the
+        state it was already in when it connected)."""
+        prev = self.charge_state.get(uniq)
+        self.charge_state[uniq] = status
+        if prev is None or prev == status:
+            return
+        if status == "Charging":
+            self.record("charging")
+            self.services.notify("bat", _("Геймпад заряжается · {cap}%").format(cap=cap), "",
+                                 "ph:battery-charging", "#2ecc71", cap)
+        elif status == "Full":
+            self.record("charged")
+            self.services.notify("bat", _("Геймпад заряжен"), "", "ph:battery-high",
+                                 "#2ecc71", 100)
 
     # -- control (couchpad ctl ...) ------------------------------------------
     def command(self, cmd):

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Charging is visible everywhere: the sidebar card says "Charging" with a
+  pulsing bolt and a light sweep on the bar, the battery chip breathes, the
+  tray icon gets a green bolt badge and its tooltip says "charging".
+- Toasts when the cable goes in and when the pad is full; the battery is
+  checked every 5 s instead of 30.
+- Tray menu: "Turn the pad off" and an "Auto power off" submenu
+  (never / 10 / 15 / 30 / 60 min); the same setting lives in System.
+- Bolt glyphs are Phosphor icons instead of an emoji.
+
 ## 1.0.3
 
 - Quick-launch wheel: aim with either stick, launch with ✕, L3 or R3.

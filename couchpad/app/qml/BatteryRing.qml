@@ -37,11 +37,19 @@ Item {
             font.pixelSize: 22
             font.weight: Font.Bold
         }
-        Text {
+        Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: ring.charging ? L.t("⚡ зарядка") : L.t("заряд")
-            color: Theme.textDim
-            font.pixelSize: 11
+            spacing: 2
+            Icon {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: ring.charging
+                name: "ph-fill:lightning"; size: 11; tint: Theme.hex(Theme.ok)
+            }
+            Text {
+                text: ring.charging ? L.t("зарядка") : L.t("заряд")
+                color: ring.charging ? Theme.ok : Theme.textDim
+                font.pixelSize: 11
+            }
         }
     }
 }

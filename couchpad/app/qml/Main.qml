@@ -20,6 +20,8 @@ ApplicationWindow {
     readonly property var s: backend.settings
     readonly property var pad: backend.pad
     readonly property bool connected: !!pad.uniq
+    readonly property bool charging: connected && pad.battery_status === "Charging"
+    readonly property bool charged: connected && pad.battery_status === "Full"
     readonly property var pages: [
         {title: L.t("Главная"), icon: "ph:house", sub: ""},
         {title: L.t("Подсветка"), icon: "ph:sun", sub: L.t("Световая полоса и индикаторы DualSense")},
@@ -310,9 +312,11 @@ ApplicationWindow {
                         color: Theme.text; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.Medium
                     }
                     Text {
-                        text: root.connected ? (pad.bluetooth ? "Bluetooth" : "USB") + (backend.mouse ? L.t(" · мышь") : "")
+                        text: root.connected ? (root.charging ? L.t("Заряжается") : root.charged ? L.t("Заряжен")
+                                                : (pad.bluetooth ? "Bluetooth" : "USB") + (backend.mouse ? L.t(" · мышь") : ""))
                                              : backend.daemonRunning ? L.t("Нажмите PS") : L.t("Включите в «Система»")
-                        color: Theme.textDim; font.family: Theme.font; font.pixelSize: 12
+                        color: root.charging || root.charged ? Theme.ok : Theme.textDim
+                        font.family: Theme.font; font.pixelSize: 12
                     }
                     Rectangle {
                         visible: root.connected && pad.battery !== undefined && pad.battery !== null
@@ -321,20 +325,54 @@ ApplicationWindow {
                         Rectangle {
                             height: parent.height; radius: 2
                             width: parent.width * (pad.battery || 0) / 100
-                            color: pad.battery_status === "Charging" || (pad.battery || 0) > 30 ? Theme.ok
+                            color: root.charging || (pad.battery || 0) > 30 ? Theme.ok
                                    : (pad.battery || 0) > 15 ? Theme.warn : Theme.danger
                             Behavior on width { NumberAnimation { duration: Theme.slow } }
+                            // charging: a light sweep runs along the bar
+                            clip: true
+                            Rectangle {
+                                id: sweep
+                                visible: root.charging
+                                width: 36; height: parent.height
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0; color: "#00ffffff" }
+                                    GradientStop { position: 0.5; color: "#b0ffffff" }
+                                    GradientStop { position: 1; color: "#00ffffff" }
+                                }
+                                NumberAnimation on x {
+                                    running: root.charging && root.visible
+                                    loops: Animation.Infinite
+                                    from: -36; to: padCard.width; duration: 1600
+                                    easing.type: Easing.InOutQuad
+                                }
+                            }
                         }
                     }
                 }
-                Text {
+                Row {
                     anchors.right: parent.right
                     anchors.rightMargin: 18
                     anchors.top: parent.top
                     anchors.topMargin: 20
+                    spacing: 3
                     visible: root.connected && pad.battery !== undefined && pad.battery !== null
-                    text: (pad.battery || 0) + "%"
-                    color: Theme.text; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold
+                    Icon {
+                        id: bolt
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: root.charging
+                        name: "ph-fill:lightning"; size: 16; tint: Theme.hex(Theme.ok)
+                        SequentialAnimation on opacity {
+                            running: root.charging && root.visible
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Text {
+                        text: (pad.battery || 0) + "%"
+                        color: Theme.text; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold
+                    }
                 }
                 MouseArea {
                     anchors.fill: parent
@@ -409,7 +447,7 @@ ApplicationWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 visible: root.connected && pad.battery !== null && pad.battery !== undefined
                                 level: pad.battery || 0
-                                charging: pad.battery_status === "Charging"
+                                charging: root.charging
                             }
                         }
                     }

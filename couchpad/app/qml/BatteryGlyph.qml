@@ -20,12 +20,17 @@ Item {
         }
     }
     Rectangle { x: 27; y: 5; width: 3; height: 5; radius: 1; color: Theme.textDim }
-    Text {
+    Icon {
         visible: bg.charging
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: -2
-        text: "⚡"
-        color: "white"
-        font.pixelSize: 11
+        name: "ph-fill:lightning"; size: 13; tint: "#ffffff"
+    }
+    SequentialAnimation on opacity {          // breathes while charging
+        running: bg.charging && bg.visible
+        loops: Animation.Infinite
+        onStopped: bg.opacity = 1
+        NumberAnimation { to: 0.55; duration: 900; easing.type: Easing.InOutSine }
+        NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
     }
 }

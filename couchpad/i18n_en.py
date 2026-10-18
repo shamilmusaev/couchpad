@@ -70,11 +70,14 @@ EN = {
     "Выключены": "Off",
     "Выключить": "Turn off",
     "Выключить геймпад": "Turn the pad off",
+    "Автовыключение": "Auto power off",
     "Выход": "Quit",
     "Геймпад выключается": "Turning the pad off",
     "Геймпад не найден": "No controller found",
     "Геймпад не подключён": "No controller",
     "Геймпад садится · {cap}%": "Battery low · {cap}%",
+    "Геймпад заряжается · {cap}%": "Charging · {cap}%",
+    "Геймпад заряжен": "Fully charged",
     "Геймпад управляет игрой. Включите, чтобы пользоваться рабочим столом с дивана.":
         "The pad controls the game. Turn this on to use the desktop from the couch.",
     "Главная": "Home",
@@ -375,5 +378,7 @@ EN = {
     "ссылка · ": "link · ",
     "стрелки": "arrows",
     "цвет": "colour",
-    "⚡ зарядка": "⚡ charging",
+    "зарядка": "charging",
+    "Заряжается": "Charging",
+    "Заряжен": "Charged",
 }
