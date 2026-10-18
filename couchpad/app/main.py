@@ -21,6 +21,7 @@ from ..i18n import _
 HERE = os.path.dirname(os.path.abspath(__file__))
 QML = os.path.join(HERE, "qml", "Main.qml")
 ICON = os.path.join(os.path.dirname(HERE), "data", "couchpad.svg")
+TRAY_GLYPH = os.path.join(os.path.dirname(HERE), "data", "couchpad-tray.svg")
 FONTS = os.path.join(os.path.dirname(HERE), "data", "fonts")
 ICONS = os.path.join(os.path.dirname(HERE), "data", "icons")
 SOCKET = f"couchpad-app-{os.getuid()}"
@@ -238,12 +239,15 @@ class App(QObject):
 
 
 def tray_icon(level, charging, mouse, connected):
-    """App icon with a battery bar along the bottom and a dot for mouse mode."""
+    """Controller glyph filling the tray slot, a battery bar under it, a bolt
+    badge while charging and a dot for mouse mode."""
     size = 64
-    pix = QIcon(ICON).pixmap(size, size)
-    img = pix.toImage().convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    img = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
+    img.fill(Qt.GlobalColor.transparent)
     p = QPainter(img)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    glyph_h = 44 if connected and level is not None else 52
+    QIcon(TRAY_GLYPH).paint(p, 0, (52 - glyph_h) // 2 if glyph_h == 52 else 0, size, glyph_h)
     if not connected:
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
         p.fillRect(img.rect(), QColor(0, 0, 0, 110))          # faded when idle
@@ -251,24 +255,22 @@ def tray_icon(level, charging, mouse, connected):
     elif level is not None:
         col = QColor("#2ecc71") if charging or level > 30 else \
             QColor("#f5b400") if level > 15 else QColor("#ff4d5e")
-        w = 34 if charging else 52                            # room for the badge
+        w = 60
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(10, 12, 18, 230))
-        p.drawRoundedRect(6, 50, w, 12, 6, 6)
+        p.setBrush(QColor(10, 12, 18, 200))
+        p.drawRoundedRect(2, 49, w, 14, 7, 7)
         p.setBrush(col)
-        p.drawRoundedRect(8, 52, max(4, int((w - 4) * level / 100)), 8, 4, 4)
-        if charging:                    # big green bolt badge: must read at 22 px
-            p.setPen(QPen(QColor(10, 12, 18), 3))
-            p.setBrush(col)
-            p.drawEllipse(QPointF(49, 49), 15, 15)
-            p.setPen(Qt.PenStyle.NoPen)
+        p.drawRoundedRect(4, 51, max(6, int((w - 4) * level / 100)), 10, 5, 5)
+        if charging:                          # big bolt across the controller
+            p.setPen(QPen(QColor(10, 12, 18), 3, Qt.PenStyle.SolidLine,
+                          Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
             p.setBrush(QColor("#ffffff"))
             p.drawPolygon(QPolygonF([QPointF(x, y) for x, y in
-                                     ((52, 37), (40, 52), (48, 52), (45, 62), (58, 46), (50, 46), (54, 37))]))
+                                     ((36, 2), (20, 26), (31, 26), (27, 46), (45, 18), (34, 18), (40, 2))]))
     if connected and mouse:
-        p.setPen(QColor(10, 12, 18))
-        p.setBrush(QColor("#ff6a1f"))
-        p.drawEllipse(44, 2, 18, 18)
+        p.setPen(QPen(QColor(10, 12, 18), 2.5))
+        p.setBrush(QColor("#ffffff"))
+        p.drawEllipse(QPointF(55, 9), 8, 8)
     p.end()
     return QIcon(QPixmap.fromImage(img))
 

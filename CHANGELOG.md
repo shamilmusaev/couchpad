@@ -4,7 +4,9 @@
 
 - Charging is visible everywhere: the sidebar card says "Charging" with a
   pulsing bolt and a light sweep on the bar, the battery chip breathes, the
-  tray icon gets a green bolt badge and its tooltip says "charging".
+  tray icon gets a white bolt and its tooltip says "charging".
+- Tray icon: the controller glyph now fills the slot like other tray icons
+  (no dark tile), with the battery bar under it.
 - Toasts when the cable goes in and when the pad is full; the battery is
   checked every 5 s instead of 30.
 - Tray menu: "Turn the pad off" and an "Auto power off" submenu
