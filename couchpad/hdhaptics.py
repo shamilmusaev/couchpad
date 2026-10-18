@@ -82,20 +82,24 @@ def build_report(frames, counter):
 # --------------------------------------------------------------------------
 # Waveforms (floats in -1..1, mono; panned at play time)
 
-def _burst(freq, ms, amp, attack_ms=1.5, decay=None, freq_end=None):
-    """Sine burst with a raised-cosine attack and exponential decay.
-    The DualSense actuators respond best roughly between 80 and 320 Hz."""
-    n = max(1, int(RATE * ms / 1000))
+def _click(freq, cycles, amp, attack_ms=1.0, fade_ms=3.0, freq_end=None):
+    """A few full-scale sine periods with soft edges: what a voice-coil
+    actuator turns into a crisp, strong tap. (A long exponential decay looks
+    nice on paper but carries almost no energy - it was barely felt.)"""
+    f_end = freq if freq_end is None else freq_end
+    ms = cycles * 1000.0 / ((freq + f_end) / 2)
+    n = max(2, int(RATE * ms / 1000))
     att = max(1, int(RATE * attack_ms / 1000))
-    decay = decay if decay is not None else 4.6 / (ms / 1000)   # -40 dB at the end
+    fade = max(1, int(RATE * fade_ms / 1000))
     out, phase = [], 0.0
     for i in range(n):
-        t = i / RATE
-        f = freq if freq_end is None else freq + (freq_end - freq) * i / n
+        f = freq + (f_end - freq) * i / n
         phase += 2 * math.pi * f / RATE
-        env = math.exp(-decay * t)
+        env = 1.0
         if i < att:
             env *= 0.5 - 0.5 * math.cos(math.pi * i / att)
+        if i >= n - fade:
+            env *= 0.5 - 0.5 * math.cos(math.pi * (n - 1 - i) / fade)
         out.append(amp * env * math.sin(phase))
     return out
 
@@ -111,25 +115,42 @@ def _seq(*parts):
     return out
 
 
+def _level(wave, peak):
+    """Scale to an exact peak, so every pattern sits where it is meant to."""
+    top = max(abs(v) for v in wave) or 1.0
+    return [v * peak / top for v in wave]
+
+
 def library():
+    # Peaks: 1.0 = full scale at 100 % strength. Lighter cues sit lower so
+    # the important ones (fire, launch, confirm) stand out.
     return {
-        # hold Share+O / Share+Triangle
-        "tick":      _burst(190, 22, 0.45),
-        "progress1": _burst(170, 20, 0.40),
-        "progress2": _burst(190, 22, 0.60),
-        "progress3": _burst(210, 24, 0.80),
-        "fire":      _seq((0, _burst(230, 32, 1.0)), (85, _burst(260, 36, 1.0))),
+        # hold Share + ○ / △: three rising taps, then a double knock
+        "tick":      _level(_click(170, 3, 1), 0.70),
+        "progress1": _level(_click(160, 3, 1), 0.60),
+        "progress2": _level(_click(180, 3, 1), 0.80),
+        "progress3": _level(_click(200, 4, 1), 1.00),
+        "fire":      _level(_seq((0, _click(220, 4, 1)), (80, _click(260, 5, 1))), 1.00),
         # generic
-        "cancel":    _burst(95, 55, 0.75, attack_ms=4),
-        "on":        _seq((0, _burst(160, 24, 0.55)), (95, _burst(250, 30, 0.85))),
-        "off":       _seq((0, _burst(250, 30, 0.75)), (95, _burst(160, 24, 0.50))),
+        "cancel":    _level(_click(110, 4, 1, attack_ms=3, fade_ms=8), 0.85),
+        "on":        _level(_seq((0, _click(160, 3, 1)), (90, _click(240, 4, 1))), 1.00),
+        "off":       _level(_seq((0, _click(240, 4, 1)), (90, _click(160, 3, 1))), 0.90),
         # wheel / switcher
-        "open":      _burst(140, 70, 0.55, attack_ms=12, freq_end=210),
-        "detent":    _burst(220, 14, 0.50, attack_ms=0.8),
-        "step":      _burst(200, 16, 0.60, attack_ms=0.8),
-        "launch":    _seq((0, _burst(260, 30, 1.0)), (0, _burst(110, 60, 0.45, attack_ms=3))),
-        "confirm":   _burst(240, 30, 0.85),
+        "open":      _level(_click(150, 8, 1, attack_ms=8, fade_ms=10, freq_end=230), 0.80),
+        "detent":    _level(_click(230, 3, 1), 0.75),
+        "step":      _level(_click(200, 3, 1), 0.90),
+        "launch":    _level(_seq((0, _click(250, 5, 1)), (0, _click(125, 3, 0.5))), 1.00),
+        "confirm":   _level(_click(240, 4, 1), 1.00),
     }
+
+
+def shape(v, k):
+    """Strength k: linear up to 100 %, above that a soft saturation, so a
+    stronger setting adds weight instead of just clipping the peaks."""
+    x = v * k
+    if k <= 1.0:
+        return x
+    return math.tanh(x * 1.6) / math.tanh(1.6)
 
 
 def pan_gains(pan):
@@ -183,8 +204,9 @@ class HDHaptics:
                 self.left += [0.0] * pad
                 self.right += [0.0] * pad
             for i, v in enumerate(wave):
-                self.left[start + i] += v * gl * k
-                self.right[start + i] += v * gr * k
+                v = shape(v, k)
+                self.left[start + i] += v * gl
+                self.right[start + i] += v * gr
             self.cv.notify()
         return True
 
