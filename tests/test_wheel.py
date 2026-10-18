@@ -261,6 +261,31 @@ class Gesture(unittest.TestCase):
         w.mousePressEvent(ev)
         self.assertEqual(got, [{"event": "launch", "i": 2}])
 
+    def test_wheel_ui_launch_confirmation(self):
+        from PySide6.QtCore import QCoreApplication, QElapsedTimer
+        from couchpad.overlay_ui import Wheel, CONFIRM_MS
+        from fakes import qt_app
+        qt_app()
+        w = Wheel()
+        w.show_items([{"name": str(i)} for i in range(6)], None)
+        w.resize(800, 600)
+        w.confirm(3)
+        self.assertTrue(w.launching and w.closing)
+        self.assertEqual(w.sel, 3, "the launched item stays highlighted")
+        got = []
+        w.emit = got.append
+        w.keyPressEvent(None)                     # input is ignored while confirming
+        self.assertEqual(got, [])
+        for c in (0.1, 0.4, 0.9):                 # every phase paints
+            w.t_confirm = c
+            self.assertFalse(w.grab().isNull())
+        clock = QElapsedTimer()
+        clock.start()
+        while w.isVisible() and clock.elapsed() < CONFIRM_MS + 1500:
+            QCoreApplication.processEvents()
+        self.assertFalse(w.isVisible(), "wheel goes away after the confirmation")
+        self.assertFalse(w.launching)
+
     def test_reset_closes_wheel(self):
         ctl, out, acts, mode = make_controller()
         open_wheel(ctl)

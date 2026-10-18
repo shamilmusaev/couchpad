@@ -34,6 +34,7 @@ from .i18n import _, set_lang
 
 TITLE = "couchpad-wheel"
 ACCENT = "#ff6a1f"
+CONFIRM_MS = 560                      # launch confirmation, then gone
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +193,10 @@ class Wheel(QWidget):
         self.closing = False
         self.close_anim = anim(130, QEasingCurve.Type.InCubic, self._set_open, 1.0, 0.0)
         self.close_anim.finished.connect(self._really_hide)
+        self.launching = False                # confirm animation running
+        self.t_confirm = 0.0
+        self.confirm_anim = anim(CONFIRM_MS, QEasingCurve.Type.Linear, self._set_confirm)
+        self.confirm_anim.finished.connect(self._really_hide)
         if shell and shell.ok:
             self.handle = shell.setup(self, LayerShell.TOP | LayerShell.BOTTOM
                                       | LayerShell.LEFT | LayerShell.RIGHT,
@@ -200,7 +205,9 @@ class Wheel(QWidget):
     # -- protocol -------------------------------------------------------------
     def show_items(self, items, sel, accent=None):
         self.close_anim.stop()
-        self.closing = False
+        self.confirm_anim.stop()
+        self.closing = self.launching = False
+        self.t_confirm = 0.0
         self.items = items
         self.icons = [load_icon(it.get("icon"), 96) for it in items]
         self.accent = color(accent)
@@ -242,13 +249,32 @@ class Wheel(QWidget):
         self.close_anim.setStartValue(self.t_open)
         self.close_anim.start()
 
+    def confirm(self, i):
+        """Launch picked: flash the sector, ripple out, then fade away."""
+        if not self.isVisible() or self.closing or not self.items:
+            return
+        if i is not None and 0 <= i < len(self.items):
+            self.sel = i
+            self.hl = i * 360.0 / len(self.items)      # no glide: it is the pick
+            self.hl_anim.stop()
+            self.pop[i] = 1.0
+        self.closing = self.launching = True
+        self.open_anim.stop()
+        self.t_open = 1.0
+        self.confirm_anim.start()
+
     def _really_hide(self):
-        self.closing = False
+        self.closing = self.launching = False
+        self.t_confirm = 0.0
         self.hide()
 
     # -- animation ------------------------------------------------------------
     def _set_open(self, v):
         self.t_open = v
+        self.update()
+
+    def _set_confirm(self, v):
+        self.t_confirm = v
         self.update()
 
     def _set_hl(self, v):
@@ -289,12 +315,16 @@ class Wheel(QWidget):
         return int(((angle + step / 2) % 360) // step)
 
     def mouseMoveEvent(self, ev):
+        if self.closing:
+            return
         i = self.sector_at(ev.position())
         if i is not None and i != self.sel:
             self.select(i)
             self.emit({"event": "select", "i": i})
 
     def mousePressEvent(self, ev):
+        if self.closing:
+            return
         if ev.button() == Qt.MouseButton.LeftButton:
             i = self.sector_at(ev.position())
             if i is not None:
@@ -305,6 +335,8 @@ class Wheel(QWidget):
             self.emit({"event": "cancel"})
 
     def keyPressEvent(self, ev):
+        if self.closing:
+            return
         k = ev.key()
         n = len(self.items)
         if k == Qt.Key.Key_Escape:
@@ -323,14 +355,20 @@ class Wheel(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        t = self.t_open
+        # launch confirmation: flash (f), pulse (bump), then exit (e)
+        c = self.t_confirm if self.launching else 0.0
+        f = 1 - (1 - min(1.0, c / 0.28)) ** 3
+        bump = math.sin(math.pi * min(1.0, c / 0.42)) if self.launching else 0.0
+        x = max(0.0, min(1.0, (c - 0.5) / 0.5))
+        e = x * x * (3 - 2 * x)
+        t = self.t_open * (1 - e)
         p.fillRect(self.rect(), QColor(8, 7, 9, int(160 * t)))
         n = len(self.items)
         if not n:
             return
         cx, cy, r_in, r_out = self.geometry_info()
         p.translate(cx, cy)
-        s = 0.9 + 0.1 * t
+        s = (0.9 + 0.1 * self.t_open) * (1 + 0.06 * e)
         p.scale(s, s)
         p.translate(-cx, -cy)
         p.setOpacity(t)
@@ -362,7 +400,7 @@ class Wheel(QWidget):
         # highlight (glides between sectors)
         if self.hl is not None and self.sel is not None:
             a0, a1 = self.hl - step / 2 + 1.5, self.hl + step / 2 - 1.5
-            path = sector_path(cx, cy, r_in + 6, r_out - 6, a0, a1)
+            path = sector_path(cx, cy, r_in + 6, r_out - 6 + 10 * bump, a0, a1)
             mid = math.radians(self.hl)
             gx, gy = cx + r_out * math.sin(mid), cy - r_out * math.cos(mid)
             grad = QLinearGradient(QPointF(cx, cy), QPointF(gx, gy))
@@ -375,6 +413,20 @@ class Wheel(QWidget):
             p.setBrush(grad)
             p.setPen(QPen(acc.lighter(150), 2))
             p.drawPath(path)
+            if self.launching:
+                p.setPen(Qt.PenStyle.NoPen)
+                p.setBrush(QColor(acc.red(), acc.green(), acc.blue(), int(200 * f)))
+                p.drawPath(path)                                # fills solid
+                p.setBrush(QColor(255, 255, 255, int(90 * bump)))
+                p.drawPath(path)                                # white flash
+                rp = min(1.0, c / 0.7)
+                grow = 1 - (1 - rp) ** 2
+                ripple = sector_path(cx, cy, r_in + 6, r_out - 6 + r_out * 0.32 * grow,
+                                     a0 - 5 * grow, a1 + 5 * grow)
+                p.setBrush(Qt.BrushStyle.NoBrush)
+                p.setPen(QPen(QColor(acc.red(), acc.green(), acc.blue(), int(220 * (1 - rp))),
+                              1 + 3 * (1 - rp)))
+                p.drawPath(ripple)
 
         # separators
         p.setPen(QPen(QColor(255, 255, 255, 18), 1.2))
@@ -386,17 +438,19 @@ class Wheel(QWidget):
         r_mid = (r_in + r_out) / 2
         for i, item in enumerate(self.items):
             k = self.pop.get(i, 0.0)
+            picked = self.launching and i == self.sel
+            dim = 1.0 if picked or not self.launching else 1 - 0.7 * f
             mid = math.radians(i * step)
             ix = cx + r_mid * math.sin(mid)
             iy = cy - r_mid * math.cos(mid)
-            size = (r_out - r_in) * (0.40 + 0.10 * k)
+            size = (r_out - r_in) * (0.40 + 0.10 * k) * (1 + (0.22 * bump if picked else 0))
             pix = self.icons[i]
             if pix:
-                p.setOpacity(t * (0.75 + 0.25 * k))
+                p.setOpacity(t * dim * (0.75 + 0.25 * k))
                 p.drawPixmap(QRectF(ix - size / 2, iy - size / 2 - 12, size, size), pix,
                              QRectF(pix.rect()))
             else:
-                p.setOpacity(t)
+                p.setOpacity(t * dim)
                 p.setPen(Qt.PenStyle.NoPen)
                 p.setBrush(QColor(acc))
                 p.drawEllipse(QPointF(ix, iy - 12), size / 2.4, size / 2.4)
@@ -404,7 +458,7 @@ class Wheel(QWidget):
                 p.setFont(font(size / 2.2, QFont.Weight.Bold))
                 p.drawText(QRectF(ix - size / 2, iy - 12 - size / 2, size, size),
                            Qt.AlignmentFlag.AlignCenter, item.get("name", "?")[:1].upper())
-            p.setOpacity(t)
+            p.setOpacity(t * dim)
             p.setPen(QColor(255, 255, 255, 170 + int(85 * k)))
             p.setFont(font(15 + 2 * k, QFont.Weight.DemiBold if k > 0.5 else QFont.Weight.Normal))
             p.drawText(QRectF(ix - 120, iy + size / 2 - 6, 240, 28),
@@ -423,10 +477,42 @@ class Wheel(QWidget):
         p.setFont(font(min(26, r_in * 0.2), QFont.Weight.Bold))
         p.drawText(QRectF(cx - r_in + 18, cy - 44, 2 * r_in - 36, 52),
                    Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, label)
+        if self.launching:
+            self._paint_check(p, cx, cy + 30, min(19, r_in * 0.15), c, f, acc)
+            return
         p.setPen(QColor(170, 166, 174))
         p.setFont(font(min(14, r_in * 0.11)))
         p.drawText(QRectF(cx - r_in, cy + 10, 2 * r_in, 44), Qt.AlignmentFlag.AlignCenter,
                    _("любой стик · ✕ / L3 / R3 — запуск\n○ — закрыть"))
+
+    def _paint_check(self, p, x, y, r, c, f, acc):
+        """Accent disc with a check mark that draws itself, and \"Launch\"."""
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(acc)
+        rr = r * (0.6 + 0.4 * f)
+        p.drawEllipse(QPointF(x, y), rr, rr)
+        pts = [QPointF(x - r * 0.45, y + r * 0.02), QPointF(x - r * 0.1, y + r * 0.36),
+               QPointF(x + r * 0.5, y - r * 0.32)]
+        k = max(0.0, min(1.0, (c - 0.08) / 0.3))         # stroke progress
+        path = QPainterPath(pts[0])
+        if k < 0.4:
+            a = k / 0.4
+            path.lineTo(pts[0] + (pts[1] - pts[0]) * a)
+        else:
+            a = (k - 0.4) / 0.6
+            path.lineTo(pts[1])
+            path.lineTo(pts[1] + (pts[2] - pts[1]) * a)
+        pen = QPen(QColor(255, 255, 255), max(2.0, r * 0.2))
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        if k > 0:
+            p.drawPath(path)
+        p.setPen(QColor(170, 166, 174))
+        p.setFont(font(r * 0.95, QFont.Weight.DemiBold))
+        p.drawText(QRectF(x - 120, y + r + 4, 240, r * 2), Qt.AlignmentFlag.AlignCenter,
+                   _("Запуск"))
 
 
 # ---------------------------------------------------------------------------
@@ -680,7 +766,10 @@ def main():
         elif cmd == "select":
             wheel.select(msg.get("i"))
         elif cmd == "hide":
-            wheel.close_animated()
+            if msg.get("launch") is not None:
+                wheel.confirm(msg["launch"])
+            else:
+                wheel.close_animated()
             emit({"event": "hidden"})
         elif cmd == "osd":
             toast.toast(msg)

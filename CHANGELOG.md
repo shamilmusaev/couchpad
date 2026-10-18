@@ -4,6 +4,8 @@
 
 - Quick-launch wheel: aim with either stick, launch with ✕, L3 or R3.
   Releasing R1 no longer launches, so the wheel never fires by accident.
+- Wheel launch confirmation: the picked sector flashes, a contour ripples out,
+  a check mark draws itself in the centre, then the wheel fades away.
 - HD haptics: clicks no longer go missing after a pause (keepalive + warm-up on
   Share), Try it reacts on press, cues are distinct, strength goes up to 300 %.
 - Window switcher: if KWin closes it by itself (e.g. a touchpad tap), Alt is

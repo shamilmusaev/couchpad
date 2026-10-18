@@ -288,7 +288,7 @@ class Services:
         if event == "select":
             self._wheel_send({"cmd": "select", "i": i})
         elif event == "launch":
-            self._wheel_send({"cmd": "hide"})
+            self._wheel_send({"cmd": "hide", "launch": i})     # confirm animation
             item = self.wheel_items[i]
             self.d.record(f"wheel_launch:{item['name']}")
             if not self.d.dry:
