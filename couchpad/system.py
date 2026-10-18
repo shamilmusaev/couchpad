@@ -343,6 +343,17 @@ if (!k) { report({open: false}); } else {
 }"""
 
 
+# KWin's task switcher is an internal window (no process, no class) that
+# exists only while it is open.
+TABBOX_JS = """
+var l = workspace.stackingOrder, open = false;
+for (var i = 0; i < l.length; i++) {
+  var w = l[i];
+  if (w.pid == -1 && String(w.resourceClass) == "" && !w.deleted && !w.hidden) open = true;
+}
+report({open: open});
+"""
+
 SHOW_DESKTOP_JS = """
 workspace.showingDesktop = !workspace.showingDesktop;
 report({ok: true, showing: workspace.showingDesktop});

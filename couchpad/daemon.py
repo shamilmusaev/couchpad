@@ -122,6 +122,8 @@ class Services:
         self.kb_watching = False
         self.kb_pending = False
         self.kb_lock = threading.Lock()
+        self.overlay_lock = threading.Lock()
+        self.switcher_watching = False
 
     def notify(self, key, title, body="", icon="ph:game-controller", accent=None, progress=None):
         """On-screen toast (overlay) or, without one, a KDE notification."""
@@ -157,9 +159,10 @@ class Services:
             self._overlay_send({"cmd": "hold_end", "done": done})
 
     def _overlay(self):
-        if self.wheel_ui is None and os.environ.get("WAYLAND_DISPLAY"):
-            self.wheel_ui = wheel_mod.WheelUI(self._wheel_ui_event)
-        return self.wheel_ui
+        with self.overlay_lock:          # input loop and worker thread both get here
+            if self.wheel_ui is None and os.environ.get("WAYLAND_DISPLAY"):
+                self.wheel_ui = wheel_mod.WheelUI(self._wheel_ui_event)
+            return self.wheel_ui
 
     def _overlay_send(self, msg):
         if self.d.dry or not os.environ.get("WAYLAND_DISPLAY"):
@@ -298,15 +301,14 @@ class Services:
     def _wheel_send(self, msg):
         if self.d.dry:
             return
-        if self.wheel_ui is None:
-            self.wheel_ui = wheel_mod.WheelUI(self._wheel_ui_event)
-        self.wheel_exec.submit(self._guard, self.wheel_ui.send, msg)
+        ui = self._overlay()
+        if ui is not None:
+            self.wheel_exec.submit(self._guard, ui.send, msg)
 
     def warm_up_wheel(self):
         if self.d.dry or not os.environ.get("WAYLAND_DISPLAY"):
             return
-        self.wheel_ui = wheel_mod.WheelUI(self._wheel_ui_event)
-        self.wheel_exec.submit(self._guard, self.wheel_ui.warm_up)
+        self.wheel_exec.submit(self._guard, lambda: self._overlay().warm_up())
 
     def _wheel_ui_event(self, msg):
         """From the UI reader thread: hand mouse choices to the controller
@@ -469,6 +471,30 @@ class Services:
     def none(self, ctl_actions):
         pass
 
+    def watch_switcher(self, ctl):
+        """While our Alt+Tab is open, check that KWin's switcher really is.
+        If KWin closed it by itself (focus change, a click...), our Alt would
+        stay pressed and every key would become Alt+key: let go of it."""
+        if self.d.dry or not self.kde() or self.switcher_watching:
+            return
+        self.switcher_watching = True
+
+        def watch():
+            misses = 0
+            try:
+                time.sleep(0.6)                  # let the switcher appear
+                while ctl.alt_tab and not self.d.stopping:
+                    res = self.d.bus.kwin_eval(system.TABBOX_JS)
+                    misses = misses + 1 if res is not None and not res.get("open") else 0
+                    if misses >= 2:
+                        log.warning("window switcher closed by KWin: releasing Alt")
+                        self.d.call_soon(ctl.switcher_gone)
+                        return
+                    time.sleep(0.3)
+            finally:
+                self.switcher_watching = False
+        self.background(watch)
+
     def after_switch(self, cancelled):
         """Alt-Tab finished: if the user went back to the game we minimized,
         undo the automatic mouse mode."""
@@ -567,9 +593,11 @@ class ControllerActions:
     def wheel(self, event, i=None):
         return self.s.wheel(event, i)
 
-    def switcher_opened(self):
+    def switcher_opened(self, ctl=None):
         log.info("window switcher opened [pad %s]", self.uniq)
         self.s.d.record("switcher_open")
+        if ctl is not None:
+            self.s.watch_switcher(ctl)
 
     def switcher_step(self, reverse):
         self.s.d.record("switcher_back" if reverse else "switcher_next")

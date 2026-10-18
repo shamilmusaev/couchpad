@@ -262,7 +262,7 @@ class Controller:
         self._release_mouse_outputs()
         self.alt_tab = True
         self.alt_tab_t = t
-        self.actions.switcher_opened()
+        self.actions.switcher_opened(self)
         self.actions.feedback("open")
         self.out.key(e.KEY_LEFTALT, True)
         self.out.sync()
@@ -307,6 +307,17 @@ class Controller:
             return True                         # diagonal while rocking
         last_t, last = self.dpad_free
         return name == last and t - last_t < self.DPAD_BOUNCE   # contact bounce
+
+    def switcher_gone(self):
+        """KWin closed its switcher by itself: release Alt, send nothing else."""
+        if not self.alt_tab:
+            return
+        self.out.key(e.KEY_LEFTALT, False)
+        self.out.key(e.KEY_LEFTSHIFT, False)
+        self.out.sync()
+        self.alt_tab = False
+        self.stick_latch = 0
+        self.actions.after_switch(cancelled=True)
 
     def _alt_tab_button(self, name, t):
         if name in ("right", "down", "r1"):

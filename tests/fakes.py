@@ -88,7 +88,7 @@ class FakeActions:
     def warm_haptics(self):
         self.warmed = getattr(self, "warmed", 0) + 1
 
-    def switcher_opened(self):
+    def switcher_opened(self, ctl=None):
         self.switches.append("open")
 
     def switcher_step(self, reverse):

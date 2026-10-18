@@ -546,5 +546,22 @@ class DpadRocker(unittest.TestCase):
         self.assertEqual([e for e, i in acts.wheel_events if e == "select"], ["select"])
 
 
+class SwitcherGone(unittest.TestCase):
+    def test_kwin_closing_the_switcher_releases_alt(self):
+        ctl, out, acts, mode = make_controller()
+        ctl.button("share", True, 0)
+        press(ctl, "circle", 0.1)
+        ctl.button("share", False, 0.2)
+        self.assertIn(e.KEY_LEFTALT, out.keys)
+        ctl.switcher_gone()
+        self.assertNotIn(e.KEY_LEFTALT, out.keys)
+        self.assertFalse(ctl.alt_tab)
+        self.assertEqual(out.taps(e.KEY_ESC), 0, "nothing else is sent")
+        self.assertEqual(acts.switches[-1], True, "reported as cancelled")
+        ctl.switcher_gone()                    # harmless twice
+        press(ctl, "right", 0.5)               # d-pad is free again
+        self.assertEqual(out.taps(e.KEY_TAB), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
