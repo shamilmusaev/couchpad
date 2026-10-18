@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.3
 
 - Quick-launch wheel: aim with either stick, launch with ✕, L3 or R3.
   Releasing R1 no longer launches, so the wheel never fires by accident.
