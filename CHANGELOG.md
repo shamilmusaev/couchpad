@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.4
 
 - Charging is visible everywhere: the sidebar card says "Charging" with a
   pulsing bolt and a light sweep on the bar, the battery chip breathes, the
