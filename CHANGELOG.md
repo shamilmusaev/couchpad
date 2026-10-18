@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Quick-launch wheel: aim with either stick, launch with ✕, L3 or R3.
+  Releasing R1 no longer launches, so the wheel never fires by accident.
+- HD haptics: clicks no longer go missing after a pause (keepalive + warm-up on
+  Share), Try it reacts on press, cues are distinct, strength goes up to 300 %.
+- Window switcher: if KWin closes it by itself (e.g. a touchpad tap), Alt is
+  released within a second instead of sticking.
+- App menu icon: PNG icons, Plasma's menu showed "?" for the SVG path.
+
 ## 1.0.2
 
 - HD haptics work again: output report 0x32 is 142 bytes (report id + 141), as

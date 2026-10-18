@@ -2,6 +2,8 @@ import os
 import tempfile
 import unittest
 
+from evdev import ecodes as e
+
 from couchpad import wheel
 from fakes import make_controller
 
@@ -47,31 +49,55 @@ class Gesture(unittest.TestCase):
         self.assertTrue(mode.wheel)
         self.assertEqual(acts.ran, [])
 
-    def test_right_stick_selects_and_release_launches(self):
+    def test_right_stick_selects_r1_release_keeps_open(self):
         ctl, out, acts, mode = make_controller()
         open_wheel(ctl)
-        ctl.axis("rx", 1.0, 0.6)          # right -> sector 1 of 6? 90deg / 60 = 1.5 -> 2
+        ctl.axis("rx", 1.0, 0.6)          # right: 90deg / 60 = 1.5 -> item 2 of 6
         ctl.axis("ry", 0.0, 0.6)
         ctl.axis("rx", 0.0, 0.7)          # stick back to centre keeps selection
         ctl.button("r1", False, 0.8)
+        ctl.button("share", False, 0.85)
         self.assertIn(("select", 2), acts.wheel_events)
+        self.assertTrue(mode.wheel, "releasing R1 launches nothing")
+        self.assertNotIn("launch", [e for e, i in acts.wheel_events])
+        ctl.button("cross", True, 1.0)
         self.assertEqual(acts.wheel_events[-1], ("launch", 2))
         self.assertFalse(mode.wheel)
         self.assertEqual(acts.ran, [], "no screenshot after a wheel")
 
-    def test_up_is_first_item(self):
+    def test_up_is_first_item_r3_launches(self):
         ctl, out, acts, mode = make_controller()
         open_wheel(ctl)
         ctl.axis("ry", -1.0, 0.6)
-        ctl.button("r1", False, 0.7)
+        ctl.button("r3", True, 0.7)
         self.assertEqual(acts.wheel_events[-1], ("launch", 0))
 
-    def test_left_stick_ignored(self):
+    def test_left_stick_selects_l3_launches(self):
+        ctl, out, acts, mode = make_controller()
+        mode.mouse = True
+        open_wheel(ctl)
+        ctl.axis("lx", 1.0, 0.6)          # right -> item 2 of 6
+        ctl.axis("lx", 0.0, 0.7)
+        ctl.button("l3", True, 0.8)
+        ctl.button("l3", False, 0.85)
+        self.assertEqual(acts.wheel_events[-1], ("launch", 2))
+        self.assertEqual(out.taps(e.KEY_ENTER), 0, "L3 must not leak as Enter")
+
+    def test_stick_pushed_further_wins(self):
         ctl, out, acts, mode = make_controller()
         open_wheel(ctl)
-        ctl.axis("lx", 1.0, 0.6)
-        ctl.axis("ly", -1.0, 0.6)
-        ctl.button("r1", False, 0.7)
+        ctl.axis("lx", 0.3, 0.6)          # resting drift on the left stick
+        ctl.axis("ry", 1.0, 0.6)          # right stick down -> item 3 of 6
+        ctl.button("cross", True, 0.7)
+        self.assertEqual(acts.wheel_events[-1], ("launch", 3))
+
+    def test_confirm_without_aim_does_nothing(self):
+        ctl, out, acts, mode = make_controller()
+        open_wheel(ctl)
+        for t, b in ((0.6, "cross"), (0.7, "l3"), (0.8, "r3")):
+            ctl.button(b, True, t)
+            ctl.button(b, False, t + 0.02)
+        self.assertTrue(mode.wheel)
         self.assertEqual(acts.wheel_events, [("open", None)])
 
     def test_release_without_selection_keeps_wheel_open(self):
@@ -170,6 +196,7 @@ class Gesture(unittest.TestCase):
             ctl.button("right", False, t + 0.02)
         ctl.button("left", True, 0.9)
         ctl.button("r1", False, 1.0)
+        ctl.button("cross", True, 1.1)
         self.assertEqual(acts.wheel_events[-1], ("launch", 1))
 
     def test_share_released_first_still_works(self):
@@ -178,6 +205,7 @@ class Gesture(unittest.TestCase):
         ctl.button("share", False, 0.6)
         ctl.axis("rx", -1.0, 0.7)            # left -> 270deg -> item 5 of 6
         ctl.button("r1", False, 0.8)
+        ctl.button("cross", True, 0.9)
         self.assertEqual(acts.wheel_events[-1], ("launch", 5))
 
     def test_share_released_early_wheel_still_works(self):
@@ -187,6 +215,7 @@ class Gesture(unittest.TestCase):
         ctl.button("share", False, 0.1)
         ctl.axis("rx", 1.0, 0.3)
         ctl.button("r1", False, 0.5)
+        ctl.button("r3", True, 0.6)
         self.assertEqual(acts.wheel_events[-1], ("launch", 2))
         self.assertEqual(acts.ran, [])
 

@@ -61,7 +61,7 @@ EN = {
     "Вспышки на действиях": "Flash on actions",
     "Выберите": "Choose",
     "Выбор": "Select",
-    "Выбор правым стиком": "Pick with the right stick",
+    "Выбор любым стиком": "Pick with either stick",
     "Выбрать": "Select",
     "Выключать геймпад без дела": "Turn the pad off when idle",
     "Выключен": "Off",
@@ -158,8 +158,8 @@ EN = {
     "Мышь с тачпада вкл/выкл": "Touchpad mouse on/off",
     "Мёртвая зона": "Dead zone",
     "Мёртвая зона стика": "Stick dead zone",
-    "Наведите правым стиком и отпустите R1.\nПервый пункт — сверху, дальше по часовой.":
-        "Aim with the right stick and release R1.\nThe first item is at the top, then clockwise.",
+    "Наведите любым стиком и нажмите ✕, L3 или R3.\nПервый пункт — сверху, дальше по часовой.":
+        "Aim with either stick and press ✕, L3 or R3.\nThe first item is at the top, then clockwise.",
     "Нажать — Alt+Tab, держать — свернуть игру": "Press: Alt+Tab. Hold: minimise the game",
     "Нажмите PS": "Press PS",
     "Нажмите PS, чтобы включить": "Press PS to turn it on",
@@ -367,7 +367,7 @@ EN = {
     "по заряду": "battery",
     "полоса не горит": "bar stays dark",
     "правый клик": "right click",
-    "правый стик · R1 / ✕ — запуск\n○ — закрыть": "right stick · R1 / ✕ to launch\n○ to close",
+    "любой стик · ✕ / L3 / R3 — запуск\n○ — закрыть": "either stick · ✕ / L3 / R3 to launch\n○ to close",
     "приложение · ": "app · ",
     "принудительно, процессов: {n}": "forced, processes: {n}",
     "радуга": "rainbow",

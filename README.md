@@ -21,7 +21,7 @@ is far away. Couchpad turns the controller in your hands into everything else:
 | **Share + ○** | Window switcher (Alt+Tab): D-pad / stick to move, ✕ to pick |
 | **Share + ○, hold** | Minimise the game and get to the desktop |
 | **Share + △, hold** | Force-close the game (the whole Steam game process tree) |
-| **Share + R1** | Quick-launch wheel: aim with the right stick, release R1 |
+| **Share + R1** | Quick-launch wheel: aim with either stick, ✕ / L3 / R3 to launch |
 | **Share + □** | Steam on-screen keyboard (kept on screen, mouse paused while open) |
 | **Share + ↑ / ↓** | Volume, repeats while held |
 | **Share + ← / →** | Monitor only / TV only (needs a `display-switcher` command) |
@@ -141,7 +141,7 @@ Share, мышь с тачпада, живая подсветка, колесо �
 | **Share + ○** | переключатель окон (Alt+Tab) |
 | **Share + ○, удерживать** | свернуть игру, перейти на рабочий стол |
 | **Share + △, удерживать** | принудительно закрыть игру |
-| **Share + R1** | колесо быстрого запуска (правый стик, отпустить R1) |
+| **Share + R1** | колесо быстрого запуска (любой стик, ✕ / L3 / R3 — запуск) |
 | **Share + □** | экранная клавиатура Steam |
 | **Share + ↑ / ↓** | громкость |
 | **Share + ← / →** | только монитор / только телевизор |

@@ -62,7 +62,7 @@ PageBase {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: L.t("Наведите правым стиком и отпустите R1.\nПервый пункт — сверху, дальше по часовой.")
+                text: L.t("Наведите любым стиком и нажмите ✕, L3 или R3.\nПервый пункт — сверху, дальше по часовой.")
                 color: Theme.textDim
                 font.pixelSize: 13
             }

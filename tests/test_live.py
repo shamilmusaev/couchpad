@@ -279,6 +279,10 @@ class Live(unittest.TestCase):
         self.v.sticks[2], self.v.sticks[3] = x, y
         self.v.send()
 
+    def set_lstick(self, x, y):
+        self.v.sticks[0], self.v.sticks[1] = x, y
+        self.v.send()
+
     def test_a_wheel_stick_select_and_launch(self):
         d = self.wheel_items()
         self.open_wheel()
@@ -289,6 +293,10 @@ class Live(unittest.TestCase):
         self.set_rstick(128, 128)
         self.v.release("r1")
         self.v.release("share")
+        time.sleep(0.4)
+        self.assertEqual(os.listdir(d), [], "releasing R1 must not launch")
+        self.assertTrue(self.wheel_state()["shown"])
+        self.v.tap("cross")
         self.assertTrue(self.wait(lambda: os.path.exists(f"{d}/1"), 3), os.listdir(d))
         self.assertEqual(sorted(os.listdir(d)), ["1"])
         self.assertTrue(self.wait(lambda: not self.wheel_state()["shown"], 3))
@@ -331,6 +339,17 @@ class Live(unittest.TestCase):
         self.assertTrue(self.wait(lambda: not self.wheel_state()["shown"], 3))
         time.sleep(0.5)
         self.assertEqual(os.listdir(d), [])
+
+    def test_c2_wheel_left_stick_r3(self):
+        d = self.wheel_items()
+        self.open_wheel()
+        self.set_lstick(0, 128)                    # left stick left -> item 3 of 4
+        time.sleep(0.2)
+        self.set_lstick(128, 128)
+        self.v.release("r1", "share")
+        self.v.tap("r3")
+        self.assertTrue(self.wait(lambda: os.path.exists(f"{d}/3"), 3), os.listdir(d))
+        self.assertTrue(self.wait(lambda: not self.wheel_state()["shown"], 3))
 
     def test_d_wheel_mouse_click(self):
         d = self.wheel_items()
@@ -383,11 +402,12 @@ class Live(unittest.TestCase):
         st = self.wheel_state()
         # layer-shell overlay layer is above fullscreen windows by protocol
         self.assertTrue(st["shown"] and st["overlay"], f"wheel not above Big Picture: {st}")
-        self.set_rstick(128, 255)                  # down -> item 2
+        self.set_lstick(128, 255)                  # left stick down -> item 2
         time.sleep(0.2)
         self.v.release("r1")
         self.v.release("share")
-        self.set_rstick(128, 128)
+        self.set_lstick(128, 128)
+        self.v.tap("l3")
         self.assertTrue(self.wait(lambda: os.path.exists(f"{d}/2"), 3))
 
     def hd_reports(self):

@@ -13,7 +13,9 @@ DEST="$DATA/couchpad"
 UNIT="$CONF/systemd/user/couchpad.service"
 BIN="$HOME/.local/bin/couchpad"
 APPS="$DATA/applications"
-ICON="$DATA/icons/hicolor/scalable/apps/couchpad.svg"
+HICOLOR="$DATA/icons/hicolor"
+# Plasma's menu shows "?" for an absolute .svg path, so the entry points at a PNG.
+ICON="$HICOLOR/512x512/apps/couchpad.png"
 AUTOSTART="$CONF/autostart/couchpad-tray.desktop"
 RULE=/etc/udev/rules.d/72-couchpad-dualsense.rules
 
@@ -69,7 +71,8 @@ if [ "${1:-}" = uninstall ]; then
         with_steam_closed env PYTHONPATH="$DEST" python3 -m couchpad steam-layout restore
     fi
     rm -rf "$DEST"
-    rm -f "$UNIT" "$BIN" "$APPS/couchpad.desktop" "$APPS/couchpad-wheel.desktop" "$ICON" "$AUTOSTART"
+    rm -f "$UNIT" "$BIN" "$APPS/couchpad.desktop" "$APPS/couchpad-wheel.desktop" "$AUTOSTART" \
+        "$HICOLOR/scalable/apps/couchpad.svg" "$HICOLOR"/*x*/apps/couchpad.png
     systemctl --user daemon-reload
     say "Removed. Settings stay in $CONF/couchpad (delete by hand if you like)."
     [ -f "$RULE" ] && say "Optional udev rule left in place: sudo rm $RULE"
@@ -129,12 +132,15 @@ cat > "$BIN" <<EOF
 PYTHONPATH="$DEST" exec python3 -W ignore -m couchpad "\$@"
 EOF
 chmod +x "$BIN"
-install -m644 "$SRC/couchpad/data/couchpad.svg" "$ICON"
+install -Dm644 "$SRC/couchpad/data/couchpad.svg" "$HICOLOR/scalable/apps/couchpad.svg"
+for s in 128 256 512; do
+    install -Dm644 "$SRC/couchpad/data/couchpad-$s.png" "$HICOLOR/${s}x$s/apps/couchpad.png"
+done
 install -m644 "$SRC/system/couchpad.desktop" "$APPS/couchpad.desktop"
 sed -i -e "s|^Exec=.*|Exec=$BIN app|" -e "s|^Icon=.*|Icon=$ICON|" "$APPS/couchpad.desktop"
 install -m644 "$SRC/system/couchpad-wheel.desktop" "$APPS/couchpad-wheel.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database "$APPS" 2>/dev/null || true
-command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q "$DATA/icons/hicolor" 2>/dev/null || true
+command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q "$HICOLOR" 2>/dev/null || true
 command -v kbuildsycoca6 >/dev/null && kbuildsycoca6 >/dev/null 2>&1 || true   # Plasma menu / task manager
 
 PYTHONPATH="$DEST" python3 -m couchpad --write-config >/dev/null

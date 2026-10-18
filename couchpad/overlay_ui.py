@@ -426,7 +426,7 @@ class Wheel(QWidget):
         p.setPen(QColor(170, 166, 174))
         p.setFont(font(min(14, r_in * 0.11)))
         p.drawText(QRectF(cx - r_in, cy + 10, 2 * r_in, 44), Qt.AlignmentFlag.AlignCenter,
-                   _("правый стик · R1 / ✕ — запуск\n○ — закрыть"))
+                   _("любой стик · ✕ / L3 / R3 — запуск\n○ — закрыть"))
 
 
 # ---------------------------------------------------------------------------

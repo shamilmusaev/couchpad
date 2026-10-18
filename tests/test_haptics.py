@@ -39,6 +39,7 @@ class EngineFeedback(unittest.TestCase):
             ctl.axis("rx", x, 0.2)
             ctl.axis("ry", y, 0.2)
         ctl.button("r1", False, 0.5)
+        ctl.button("cross", True, 0.6)
         self.assertEqual(acts.fb[0], "open")
         # up -> (up-right diagonal) -> right -> down: one click per sector passed
         self.assertEqual(acts.fb.count("detent"), 4, acts.fb)

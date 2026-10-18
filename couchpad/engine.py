@@ -205,7 +205,7 @@ class Controller:
         if name == "r1":
             if self.alt_tab:
                 return
-            # Opens at once; R1 release launches the picked item.
+            # Opens at once and stays open: aim with either stick, ✕ / L3 / R3 launch.
             self.long = {"button": name, "action": "wheel", "t": t, "fired": True}
             self._wheel_open()
             if not self.wheel:
@@ -244,10 +244,7 @@ class Controller:
             return
         long, self.long = self.long, None
         if long["action"] == "wheel":
-            if self.wheel and self.wheel["sel"] is not None:
-                self._wheel_close(launch=True)
-            # nothing picked yet: the wheel stays open for mouse / ✕ / ○
-            return
+            return                      # releasing R1 picks nothing: ✕ / L3 / R3 do
         if long["fired"]:
             return
         self._hold_end(False, long)
@@ -345,7 +342,10 @@ class Controller:
     def _wheel_aim(self):
         from .wheel import sector
         w = self.wheel
-        i = sector(self.axes["rx"], self.axes["ry"], w["n"])     # right stick
+        # Either stick aims; the one pushed further wins.
+        x, y = max(((self.axes["lx"], self.axes["ly"]), (self.axes["rx"], self.axes["ry"])),
+                   key=lambda v: math.hypot(*v))
+        i = sector(x, y, w["n"])
         if i is not None and i != w["sel"]:
             w["sel"] = i
             self.actions.feedback("detent", self._wheel_pan(i))
@@ -366,7 +366,9 @@ class Controller:
             self._wheel_step(1)
         elif name in ("left", "up"):
             self._wheel_step(-1)
-        elif name in ("cross", "r2"):
+        elif name in ("cross", "l3", "r3", "r2"):
+            if self.wheel["sel"] is None:
+                return                  # nothing aimed yet
             self._wheel_close(launch=True)
             self.consumed.add(name)
         elif name in ("circle", "l2"):
@@ -396,7 +398,7 @@ class Controller:
         else:
             self.actions.feedback("cancel")
             self.actions.wheel("cancel")
-        # R1 may still be held after ✕/○: swallow its release.
+        # R1 may still be held after ✕/○: forget it.
         if self.long and self.long.get("action") == "wheel":
             self.long = None
 
