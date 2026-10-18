@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2
+
+- HD haptics work again: output report 0x32 is 142 bytes (report id + 141), as
+  the controller's HID descriptor says. The CRC sat one byte early, so the
+  DualSense dropped every haptics packet. Packets are now byte-identical to
+  SAxense's.
+
 ## 1.0.1
 
 - Mouse mode: R2 = left click, R1 = right click.
