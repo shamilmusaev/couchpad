@@ -69,7 +69,7 @@ class Rumble:
 
     def __init__(self, dev, loop, enabled, strength=1.0):
         self.dev, self.loop, self.enabled = dev, loop, enabled
-        self.strength = max(0.0, min(strength, 2.0))
+        self.strength = max(0.0, min(strength, 3.0))
         self.eid = -1
         self.handles = []
 
@@ -1026,7 +1026,7 @@ class Daemon:
         for pad in self.pads.values():
             if pad.rumble:
                 pad.rumble.enabled = self.cfg.rumble and not self.dry
-                pad.rumble.strength = max(0.0, min(self.cfg.haptic_strength, 2.0))
+                pad.rumble.strength = max(0.0, min(self.cfg.haptic_strength, 3.0))
             if (self.cfg.rumble, self.cfg.haptics, self.cfg.haptic_strength) != old_haptics:
                 pad.remake_hd()
             if pad.lights:

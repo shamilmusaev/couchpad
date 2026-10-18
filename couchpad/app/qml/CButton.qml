@@ -7,7 +7,7 @@ Button {
     property string kind: "normal"         // normal | accent | ghost | danger
     property string iconName: ""
     property real radius: Theme.radiusSmall
-    function padAccept() { clicked() }
+    function padAccept() { pressed(); clicked() }   // handlers may listen to either
     implicitHeight: 42
     leftPadding: 18
     rightPadding: 18

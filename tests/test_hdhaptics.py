@@ -190,10 +190,19 @@ class Streaming(unittest.TestCase):
         self.assertTrue(all(v == (0, 0) for v in s[:hd.PREROLL * hd.FRAMES]))
 
     def test_strength(self):
-        self.h.strength = 0.5
-        self.h.play("launch")
-        self.wait_idle()
-        self.assertLess(max(abs(a) for a, b in self.samples()), 70)
+        def peak_and_energy(k):
+            self.reports.clear()
+            self.h.strength = k
+            self.h.play("step")
+            self.wait_idle()
+            s = [a for a, b in self.samples()]
+            return max(abs(v) for v in s), sum(v * v for v in s)
+        low, low_e = peak_and_energy(0.4)
+        mid, mid_e = peak_and_energy(1.0)
+        high, high_e = peak_and_energy(3.0)
+        self.assertLess(low, mid * 0.7, "weaker below 100 %")
+        self.assertLessEqual(high, 127, "never wraps")
+        self.assertGreater(high_e, mid_e * 1.4, "more energy above 100 %")
 
     def test_unknown_or_zero_strength(self):
         self.assertFalse(self.h.play("nope"))

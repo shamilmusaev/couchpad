@@ -61,7 +61,7 @@ PageBase {
                 title: L.t("Сила")
                 icon: "ph:speaker-high"
                 CSlider {
-                    from: 0.1; to: 2; stepSize: 0.1
+                    from: 0.1; to: 3; stepSize: 0.1
                     value: s.haptic_strength
                     format: function (v) { return Math.round(v * 100) + "%" }
                     onMoved: backend.set("haptic_strength", value)
@@ -88,7 +88,7 @@ PageBase {
                     CButton {
                         Layout.fillWidth: true
                         text: modelData.label
-                        onClicked: backend.testHaptic(modelData.name)
+                        onPressed: backend.testHaptic(modelData.name)   // on press: no release lag
                     }
                 }
             }
@@ -96,7 +96,7 @@ PageBase {
                 text: L.t("Проиграть все")
                 kind: "accent"
                 iconName: "ph:play"
-                onClicked: backend.testHaptic("demo")
+                onPressed: backend.testHaptic("demo")
             }
         }
     }

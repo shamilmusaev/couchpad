@@ -38,7 +38,7 @@ class Config:
 
     # --- behaviour ---
     rumble: bool = True              # haptic feedback on the controller
-    haptic_strength: float = 1.0     # 0 = off .. 2 = twice as strong
+    haptic_strength: float = 1.0     # 0 = off .. 3 = strongest
     haptics: str = "auto"            # auto (HD over Bluetooth) | hd | rumble
     notifications: bool = True
     osd: bool = True                 # own on-screen messages instead of KDE popups
@@ -121,6 +121,7 @@ def validate(cfg):
     cfg.light_brightness = min(max(cfg.light_brightness, 0.0), 1.0)
     cfg.light_speed = min(max(cfg.light_speed, 0.1), 5.0)
     cfg.idle_off = max(cfg.idle_off, 0.0)
+    cfg.haptic_strength = min(max(cfg.haptic_strength, 0.0), 3.0)
     cfg.wheel = [w for w in cfg.wheel if isinstance(w, dict)]
     cfg.chords = {str(k): str(v) for k, v in cfg.chords.items()}
 

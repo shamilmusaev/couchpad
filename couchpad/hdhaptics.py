@@ -121,36 +121,58 @@ def _level(wave, peak):
     return [v * peak / top for v in wave]
 
 
+def _swell(freq, ms, amp, rise=0.6, freq_end=None):
+    """A tone that swells in and fades out (a soft "whoosh")."""
+    n = int(RATE * ms / 1000)
+    f_end = freq if freq_end is None else freq_end
+    out, phase = [], 0.0
+    for i in range(n):
+        x = i / n
+        f = freq + (f_end - freq) * x
+        phase += 2 * math.pi * f / RATE
+        env = math.sin(math.pi * min(1.0, x / rise) / 2) if x < rise else \
+            0.5 + 0.5 * math.cos(math.pi * (x - rise) / (1 - rise))
+        out.append(amp * env * math.sin(phase))
+    return out
+
+
 def library():
-    # Peaks: 1.0 = full scale at 100 % strength. Lighter cues sit lower so
-    # the important ones (fire, launch, confirm) stand out.
+    """Each cue has its own character, so the hands can tell them apart.
+    Peaks: 1.0 = full scale at 100 % strength."""
     return {
-        # hold Share + ○ / △: three rising taps, then a double knock
-        "tick":      _level(_click(170, 3, 1), 0.70),
-        "progress1": _level(_click(160, 3, 1), 0.60),
-        "progress2": _level(_click(180, 3, 1), 0.80),
-        "progress3": _level(_click(200, 4, 1), 1.00),
-        "fire":      _level(_seq((0, _click(220, 4, 1)), (80, _click(260, 5, 1))), 1.00),
-        # generic
-        "cancel":    _level(_click(110, 4, 1, attack_ms=3, fade_ms=8), 0.85),
-        "on":        _level(_seq((0, _click(160, 3, 1)), (90, _click(240, 4, 1))), 1.00),
-        "off":       _level(_seq((0, _click(240, 4, 1)), (90, _click(160, 3, 1))), 0.90),
-        # wheel / switcher
-        "open":      _level(_click(150, 8, 1, attack_ms=8, fade_ms=10, freq_end=230), 0.80),
-        "detent":    _level(_click(230, 3, 1), 0.75),
-        "step":      _level(_click(200, 3, 1), 0.90),
-        "launch":    _level(_seq((0, _click(250, 5, 1)), (0, _click(125, 3, 0.5))), 1.00),
-        "confirm":   _level(_click(240, 4, 1), 1.00),
+        # hold Share + ○ / △: three rising ticks, then a heavy double knock
+        "tick":      _level(_click(120, 2, 1, fade_ms=4), 0.75),
+        "progress1": _level(_click(150, 2, 1), 0.65),
+        "progress2": _level(_click(190, 3, 1), 0.85),
+        "progress3": _level(_click(240, 4, 1), 1.00),
+        "fire":      _level(_seq((0, _click(100, 3, 1, fade_ms=5)), (0, _click(250, 4, 0.6)),
+                                 (90, _click(100, 3, 1, fade_ms=5)), (90, _click(250, 4, 0.6))), 1.00),
+        # soft drop: a falling wobble
+        "cancel":    _level(_click(180, 6, 1, attack_ms=4, fade_ms=12, freq_end=90), 0.80),
+        # mouse mode: rising / falling chirp ending in a tap
+        "on":        _level(_seq((0, _click(110, 10, 1, attack_ms=6, fade_ms=4, freq_end=260)),
+                                 (70, _click(260, 3, 1))), 1.00),
+        "off":       _level(_seq((0, _click(260, 3, 1)),
+                                 (25, _click(260, 10, 1, attack_ms=4, fade_ms=10, freq_end=110))), 0.90),
+        # wheel / switcher opens: a swell
+        "open":      _level(_swell(150, 90, 1, rise=0.5, freq_end=220), 0.85),
+        # wheel sectors / volume: a tiny bright ratchet tooth
+        "detent":    _level(_click(300, 2, 1, attack_ms=0.5, fade_ms=2), 0.80),
+        # window switcher step: a "tock" with a faint echo
+        "step":      _level(_seq((0, _click(180, 3, 1)), (32, _click(180, 2, 0.35))), 0.95),
+        # wheel launch: a bass boom with a click on top
+        "launch":    _level(_seq((0, _click(85, 4, 1, fade_ms=8)), (0, _click(270, 4, 0.55))), 1.00),
+        # switcher confirm: a bright double tap
+        "confirm":   _level(_seq((0, _click(250, 3, 1)), (40, _click(280, 3, 1))), 1.00),
     }
 
 
 def shape(v, k):
-    """Strength k: linear up to 100 %, above that a soft saturation, so a
-    stronger setting adds weight instead of just clipping the peaks."""
+    """Strength k (0..3): a soft saturation that keeps peaks at full scale
+    while k > 1 fattens the waveform towards a square wave, the most energy
+    a voice coil can be given."""
     x = v * k
-    if k <= 1.0:
-        return x
-    return math.tanh(x * 1.6) / math.tanh(1.6)
+    return math.tanh(1.3 * x) / math.tanh(1.3)
 
 
 def pan_gains(pan):
@@ -174,7 +196,7 @@ class HDHaptics:
         self.keepalive = max(TAIL, int(keepalive / PERIOD))   # in reports
         self.streaming = False              # channel warm: no lead-in needed
         self.warm_t = 0.0                   # last warm() call
-        self.strength = max(0.0, min(strength, 2.0))
+        self.strength = max(0.0, min(strength, 3.0))
         self.lib = library()
         self.left, self.right = [], []      # pending mix (floats)
         self.preroll = 0                    # silent samples still at the head
