@@ -6,6 +6,16 @@ PageBase {
     readonly property var s: root.s
     readonly property string mode: !s.rumble ? "off" : s.haptics === "rumble" ? "rumble" : "hd"
 
+    // HD haptics: keep the controller's haptics channel awake while this page
+    // is open, so "Try it" clicks play at once and short ones aren't lost.
+    Timer {
+        running: pg.current && pg.mode === "hd" && root.visible
+        interval: 2000
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: backend.warmHaptics()
+    }
+
     Card {
         Layout.fillWidth: true
         ColumnLayout {

@@ -1105,6 +1105,10 @@ class Daemon:
                 return "usage: mouse on|off|toggle"
             self.set_mouse(on)
             return "mouse " + ("on" if self.mode.mouse else "off")
+        if parts[0] == "haptic-warm":
+            # the control center's Feedback page keeps the channel awake
+            n = sum(1 for p in self.pads.values() if p.hd and p.hd.warm())
+            return f"warm {n}"
         if parts[0] == "haptic" and len(parts) == 2:
             # feel the patterns: couchpad haptic demo | couchpad haptic fire
             names = list(HAPTICS) if parts[1] == "demo" else [parts[1]]

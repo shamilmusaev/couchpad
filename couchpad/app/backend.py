@@ -157,6 +157,10 @@ class Backend(QObject):
     def testHaptic(self, name):
         self._call_async("haptic " + name)
 
+    @Slot()
+    def warmHaptics(self):
+        self._call_async("haptic-warm")
+
     @Slot(str)
     def previewLight(self, color):
         self._call_async("light-preview " + color)
