@@ -390,7 +390,7 @@ class Live(unittest.TestCase):
         import zlib
         out = [r for r in self.v.outputs if r and r[0] == 0x32]
         for r in out:
-            self.assertEqual(len(r), 141)
+            self.assertEqual(len(r), 142)
             self.assertEqual(st.unpack("<I", r[-4:])[0], zlib.crc32(b"\xa2" + r[:-4]))
         return out
 

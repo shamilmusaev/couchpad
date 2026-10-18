@@ -21,14 +21,14 @@ class Report(unittest.TestCase):
     def test_layout(self):
         frames = bytes(range(64))
         r = hd.build_report(frames, 7)
-        self.assertEqual(len(r), 141)
+        self.assertEqual(len(r), 142, "report id + 141 bytes, as the HID descriptor says")
         self.assertEqual(r[0], 0x32)
         self.assertEqual(r[1], 0x00)
         self.assertEqual(r[2:4], bytes((0x91, 7)))
         self.assertEqual(r[4:11], bytes((0xFE, 0, 0, 0, 0, 0xFF, 7)))
         self.assertEqual(r[11:13], bytes((0x92, 64)))
         self.assertEqual(r[13:77], frames)
-        self.assertEqual(r[77:137], bytes(60))
+        self.assertEqual(r[77:138], bytes(61))
 
     def test_crc_matches_saxense(self):
         for counter in (0, 1, 200):
@@ -256,6 +256,33 @@ class EngineClicks(unittest.TestCase):
             ctl.tick(t)
             t += 0.01
         self.assertEqual(acts.fb.count("detent"), acts.ran.count("volume_up"))
+
+
+class Descriptor(unittest.TestCase):
+    def test_sizes_match_the_controllers_hid_descriptor(self):
+        """Output report sizes from a real DualSense (Bluetooth) descriptor."""
+        import os
+        path = os.path.join(os.path.dirname(__file__), "data", "dualsense_bt.rdesc")
+        with open(path, "rb") as f:
+            d = f.read()
+        sizes, i, rid, size, count = {}, 0, None, 0, 0
+        while i < len(d):
+            b = d[i]
+            n = (0, 1, 2, 4)[b & 3]
+            tag, val = b & 0xFC, int.from_bytes(d[i + 1:i + 1 + n], "little")
+            i += 1 + n
+            if tag == 0x84:
+                rid = val
+            elif tag == 0x74:
+                size = val
+            elif tag == 0x94:
+                count = val
+            elif tag == 0x90:                      # Output item
+                sizes[rid] = size * count // 8
+        self.assertEqual(len(hd.build_report(bytes(64), 0)), 1 + sizes[0x32])
+        self.assertEqual(len(hd.build_arm_report()), 1 + sizes[0x31])
+        from couchpad import lights
+        self.assertEqual(len(lights.build_led_report(True, player=1)), 1 + sizes[0x31])
 
 
 if __name__ == "__main__":

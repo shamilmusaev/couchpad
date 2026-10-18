@@ -4,7 +4,9 @@ haptic "audio" through the hidraw node.
 Wire protocol (output report 0x32) as reverse-engineered by SAxense,
 MPL-2.0 - https://apps.sdore.me/SAxense - https://github.com/egormanga/SAxense
 
-Each 141-byte report carries one packet 0x11 (control, with a running
+Report 0x32 is 141 bytes of data after the report id (142 written to
+hidraw, as the controller's HID descriptor says). It carries one packet
+0x11 (control, with a running
 counter) and one packet 0x12 with 32 stereo frames of signed 8-bit PCM at
 3 kHz (10.67 ms of signal), followed by a CRC32 seeded with 0xA2.
 """
@@ -20,7 +22,7 @@ import zlib
 log = logging.getLogger("couchpad")
 
 REPORT_ID = 0x32
-REPORT_SIZE = 141
+REPORT_SIZE = 142                  # report id + 141 data bytes (CRC in the last 4)
 RATE = 3000
 FRAMES = 32                        # stereo frames per report
 PERIOD = FRAMES / RATE             # 10.67 ms
@@ -59,7 +61,7 @@ def build_arm_report(seq=0):
 
 
 def build_report(frames, counter):
-    """frames: 64 bytes (int8 L/R interleaved) -> 141-byte report."""
+    """frames: 64 bytes (int8 L/R interleaved) -> 142-byte report."""
     body = bytearray(REPORT_SIZE - 1 - 4)
     body[0] = 0x00                                     # tag/seq
     body[1], body[2] = 0x80 | 0x11, 7                  # packet 0x11, sized
