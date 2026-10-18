@@ -85,6 +85,9 @@ class FakeActions:
         self.wheel_events.append((event, i))
         return self.wheel_n if event == "open" else None
 
+    def warm_haptics(self):
+        self.warmed = getattr(self, "warmed", 0) + 1
+
     def switcher_opened(self):
         self.switches.append("open")
 

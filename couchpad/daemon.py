@@ -532,6 +532,10 @@ class ControllerActions:
     def hold_end(self, done):
         self.s.hold_end(done)
 
+    def warm_haptics(self):
+        if self.pad and self.pad.hd:
+            self.pad.hd.warm()
+
     def feedback(self, kind, pan=0.0):
         if kind == "launch":
             self.flash("#ffffff")

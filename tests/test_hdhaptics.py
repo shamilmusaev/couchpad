@@ -220,6 +220,34 @@ class Streaming(unittest.TestCase):
         time.sleep(0.9)
         self.assertFalse(h.streaming, "stops after the keepalive")
 
+    def test_warm_then_click_has_no_extra_lead_in(self):
+        """Share pressed -> stream starts; the ○ click ~150 ms later plays at
+        once on the already-running channel."""
+        reports = []
+        h = hd.HDHaptics("/x", writer=reports.append, keepalive=0.5)
+        self.addCleanup(h.close)
+        self.assertTrue(h.warm())
+        time.sleep(0.15)
+        self.assertTrue(h.streaming)
+        n = len(reports)
+        h.play("tick")
+        time.sleep(0.1)
+        later = [r for r in reports[n:] if r[0] == 0x32]
+        first_signal = next(i for i, r in enumerate(later) if any(r[13:77]))
+        self.assertLessEqual(first_signal, 1)
+        self.assertEqual(sum(1 for r in reports if r[0] == 0x31), 1)
+
+    def test_click_right_after_warm_waits_for_lead_in(self):
+        reports = []
+        h = hd.HDHaptics("/x", writer=reports.append, keepalive=0)
+        self.addCleanup(h.close)
+        h.warm()
+        h.play("tick")                      # before the channel is up
+        time.sleep(0.3)
+        hd_reports = [r for r in reports if r[0] == 0x32]
+        first_signal = next(i for i, r in enumerate(hd_reports) if any(r[13:77]))
+        self.assertGreaterEqual(first_signal, hd.PREROLL)
+
     def test_cold_start_has_lead_in(self):
         reports = []
         h = hd.HDHaptics("/x", writer=reports.append, keepalive=0)
@@ -277,6 +305,11 @@ class EngineClicks(unittest.TestCase):
         pans = [p for k, p in zip(acts.fb, acts.pans) if k == "detent"]
         self.assertGreater(pans[0], 0.5)
         self.assertLess(pans[1], -0.5)
+
+    def test_share_press_warms_haptics(self):
+        ctl, out, acts, mode = make_controller()
+        ctl.button("share", True, 0)
+        self.assertEqual(getattr(acts, "warmed", 0), 1)
 
     def test_volume_ticks(self):
         ctl, out, acts, mode = make_controller()

@@ -152,6 +152,7 @@ class HDHaptics:
         self.node = node
         self.keepalive = max(TAIL, int(keepalive / PERIOD))   # in reports
         self.streaming = False              # channel warm: no lead-in needed
+        self.warm_t = 0.0                   # last warm() call
         self.strength = max(0.0, min(strength, 2.0))
         self.lib = library()
         self.left, self.right = [], []      # pending mix (floats)
@@ -184,6 +185,22 @@ class HDHaptics:
             for i, v in enumerate(wave):
                 self.left[start + i] += v * gl * k
                 self.right[start + i] += v * gr * k
+            self.cv.notify()
+        return True
+
+    def warm(self):
+        """Start the stream (silence) ahead of a likely click, so the click
+        doesn't wait for the controller to wake its haptics channel."""
+        if self.failed or self.strength <= 0:
+            return False
+        with self.cv:
+            if self.streaming or self.left:
+                self.warm_t = time.monotonic()      # just extend the keepalive
+                return True
+            self.left = [0.0] * (PREROLL * FRAMES)
+            self.right = [0.0] * (PREROLL * FRAMES)
+            self.preroll = PREROLL * FRAMES       # an early click still waits for it
+            self.warm_t = time.monotonic()
             self.cv.notify()
         return True
 
@@ -232,7 +249,7 @@ class HDHaptics:
                     l, self.left = self.left[:FRAMES], self.left[FRAMES:]
                     r, self.right = self.right[:FRAMES], self.right[FRAMES:]
                     self.preroll = max(0, self.preroll - FRAMES)
-                    if any(l) or any(r) or self.left:
+                    if any(l) or any(r) or self.left or self.warm_t > nxt - PERIOD:
                         silent = 0
                     else:
                         silent += 1

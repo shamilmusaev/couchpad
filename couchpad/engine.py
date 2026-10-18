@@ -151,6 +151,7 @@ class Controller:
         if pressed:
             self.share_down_t = t
             self.share_chorded = False
+            self.actions.warm_haptics()     # every gesture starts here
             self._late_chord(t)
             return
         down_t, self.share_down_t = self.share_down_t, None
